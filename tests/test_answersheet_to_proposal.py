@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import argparse
+import inspect
+import json
 import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -270,3 +272,149 @@ def test_resolve_id_non_integer_manifest(tmp_path: Path) -> None:
     )
     with pytest.raises(a2p.ProposalError, match="not an integer"):
         a2p.resolve_project_id(_ns(repo_path=str(tmp_path)))
+
+
+# --- max-url-len default (Fix 1a: 6000 -> 7000) -----------------------------
+
+
+def test_build_urls_default_max_len_is_7000() -> None:
+    assert inspect.signature(a2p.build_urls).parameters["max_url_len"].default == 7000
+
+
+def test_default_max_len_keeps_one_url_where_6000_would_split() -> None:
+    # Two ~3.3 KB criteria total ~6.7 KB: fits in one URL at the 7000 default,
+    # but the old 6000 cap would have split them into two.
+    rows = [("crit_0", "Met", "z" * 3300), ("crit_1", "Met", "z" * 3300)]
+    assert len(a2p.build_urls(1, rows)) == 1
+    assert len(a2p.build_urls(1, rows, max_url_len=6000)) == 2
+
+
+def test_cli_default_max_len_single_url(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    lines = ["| Criterion | Status | Justification |", "|---|---|---|"]
+    lines += [f"| `crit_{i}` | **Met** | {'z' * 3300} |" for i in range(2)]
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    rc = a2p.main(["--sheet", str(sheet), "--id", "9"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "1 proposal URL" in out  # not split at the 7000 default
+
+
+# --- multi-URL clobber warning (Fix 1b) -------------------------------------
+
+
+def test_multi_url_prints_one_at_a_time_warning(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    lines = ["| Criterion | Status | Justification |", "|---|---|---|"]
+    lines += [f"| `crit_{i:02d}` | **Met** | {'x' * 80} |" for i in range(20)]
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    rc = a2p.main(["--sheet", str(sheet), "--id", "9", "--max-url-len", "500"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    # Loud, explicit sequential-save warning.
+    assert "ONE AT A TIME" in out
+    assert "CLOBBER" in out
+    assert "SAME section form" in out
+    # Existing per-URL numbering is kept.
+    assert "URL 1 of" in out
+
+
+def test_single_url_has_no_clobber_warning(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text(
+        "| Criterion | Status | Justification |\n|---|---|---|\n| `dco` | **Met** | x |\n",
+        encoding="utf-8",
+    )
+    rc = a2p.main(["--sheet", str(sheet), "--id", "9"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "ONE AT A TIME" not in out
+
+
+# --- .bestpractices.json output mode (Fix 1c) -------------------------------
+
+
+def test_build_bestpractices_mapping_values() -> None:
+    rows = [
+        ("description_good", "Met", "See https://x.example/a b for the pitch."),
+        ("release_notes_vulns", "N/A", "none yet"),
+        ("crypto_random", "Unmet", "not done"),
+        ("maintained", "?", ""),
+    ]
+    mapping = a2p.build_bestpractices_mapping(rows)
+    assert mapping["description_good_status"] == "Met"
+    # Justification is a PLAIN string — not url-encoded (spaces/slashes intact).
+    assert mapping["description_good_justification"] == "See https://x.example/a b for the pitch."
+    assert mapping["release_notes_vulns_status"] == "N/A"  # literal, not N%2FA
+    assert mapping["crypto_random_status"] == "Unmet"
+    assert mapping["maintained_status"] == "?"  # literal, not %3F
+    # No justification key when the cell is empty.
+    assert "maintained_justification" not in mapping
+
+
+def test_build_bestpractices_mapping_empty_errors() -> None:
+    with pytest.raises(a2p.ProposalError):
+        a2p.build_bestpractices_mapping([])
+
+
+def test_main_bestpractices_json_writes_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text(
+        "| Criterion | Status | Justification |\n"
+        "|---|---|---|\n"
+        "| `description_good` | **Met** | See https://x.example/a b page. |\n"
+        "| `release_notes_vulns` | **N/A** | none yet |\n"
+        "| `maintained` | **?** |  |\n",
+        encoding="utf-8",
+    )
+    out_file = tmp_path / ".bestpractices.json"
+    rc = a2p.main(["--sheet", str(sheet), "--id", "9", "--bestpractices-json", str(out_file)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert str(out_file) in out
+    assert ".bestpractices.json" in out
+    data = json.loads(out_file.read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    assert data["description_good_status"] == "Met"
+    assert data["description_good_justification"] == "See https://x.example/a b page."
+    assert data["release_notes_vulns_status"] == "N/A"
+    assert data["maintained_status"] == "?"
+    assert "maintained_justification" not in data
+    # No URL params leaked in — this is not the URL mode.
+    assert "%2F" not in out_file.read_text(encoding="utf-8")
+
+
+def test_main_bestpractices_json_needs_no_project_id(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # JSON mode must not require a resolvable project id (id 0 in the manifest).
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text(
+        "| Criterion | Status | Justification |\n|---|---|---|\n| `dco` | **Met** | x |\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "hardening.toml").write_text("[badge]\nbestpractices_id = 0\n", encoding="utf-8")
+    out_file = tmp_path / ".bestpractices.json"
+    rc = a2p.main(
+        ["--sheet", str(sheet), "--repo-path", str(tmp_path), "--bestpractices-json", str(out_file)]
+    )
+    assert rc == 0
+    assert json.loads(out_file.read_text(encoding="utf-8"))["dco_status"] == "Met"
+
+
+def test_main_bestpractices_json_empty_sheet_errors(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sheet = tmp_path / "empty.md"
+    sheet.write_text("# no tables here\n", encoding="utf-8")
+    out_file = tmp_path / ".bestpractices.json"
+    rc = a2p.main(["--sheet", str(sheet), "--id", "1", "--bestpractices-json", str(out_file)])
+    assert rc == 2
+    assert "no criteria parsed" in capsys.readouterr().err
+    assert not out_file.exists()
