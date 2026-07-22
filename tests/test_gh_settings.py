@@ -460,3 +460,21 @@ def test_main_dispatches_make_public_dryrun(capsys: pytest.CaptureFixture[str]) 
 def test_build_parser_requires_subcommand() -> None:
     with pytest.raises(SystemExit):
         gh_settings.main([])
+
+
+def test_is_pr_status_check_excludes_scorecard() -> None:
+    assert gh_settings.is_pr_status_check("Test (Python 3.12)")
+    assert gh_settings.is_pr_status_check("Lint")
+    assert not gh_settings.is_pr_status_check("Scorecard analysis")
+    assert not gh_settings.is_pr_status_check("OpenSSF Scorecard")
+
+
+def test_discover_status_checks_drops_scorecard(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Scorecard runs on push/schedule, never on pull_request — requiring it as a
+    # status check would hang every PR, so it must be filtered from the contexts.
+    monkeypatch.setattr(
+        gh_settings,
+        "capture",
+        lambda cmd: (0, "Lint\nScorecard analysis\nTest (Python 3.12)\n", ""),
+    )
+    assert gh_settings.discover_status_checks("o/r") == ["Lint", "Test (Python 3.12)"]

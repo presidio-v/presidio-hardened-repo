@@ -362,11 +362,26 @@ def cmd_add_reviewer(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+# Checks that monitor repository posture on push/schedule but do NOT run on
+# pull_request events. Requiring one as a status check hangs every PR forever on
+# an "Expected" check that never reports (OpenSSF Scorecard is the canonical
+# case), so they are excluded from the discovered required contexts.
+_NON_PR_CHECK_SUBSTRINGS = ("scorecard",)
+
+
+def is_pr_status_check(name: str) -> bool:
+    """False for posture checks that never run on pull_request (e.g. Scorecard)."""
+    lowered = name.lower()
+    return not any(marker in lowered for marker in _NON_PR_CHECK_SUBSTRINGS)
+
+
 def discover_status_checks(repo: str) -> list[str]:
     """Return the distinct check-run names on the default branch's latest commit.
 
-    These become the required status-check contexts. If none can be found the
-    caller falls back to strict mode with an empty context list and a note.
+    These become the required status-check contexts, minus posture-only checks
+    that never run on pull_request (see ``is_pr_status_check``) — requiring those
+    would block every PR indefinitely. If none can be found the caller falls back
+    to strict mode with an empty context list and a note.
     """
     rc, out, _ = capture(
         [
@@ -382,7 +397,7 @@ def discover_status_checks(repo: str) -> list[str]:
     seen: list[str] = []
     for name in out.splitlines():
         name = name.strip()
-        if name and name not in seen:
+        if name and name not in seen and is_pr_status_check(name):
             seen.append(name)
     return seen
 
