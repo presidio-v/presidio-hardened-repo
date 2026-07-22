@@ -84,7 +84,10 @@ the same dependency within one module.
 same pull request.** Bug fixes must include a regression test that fails before the fix and
 passes after it. This is enforced in review, and by the coverage gate.
 
-- coverage floors are enforced in CI: **statement coverage ≥ 90%** and **branch coverage ≥ 80%**
+<!-- FILL:coverage-policy — state the coverage floor(s) this project actually enforces in
+     CI and where the gate lives (e.g. `pytest --cov-fail-under=N`, plus any separate branch-
+     coverage floor). Use the numbers this repo enforces — floors vary across projects. -->
+
 
 ### Security-sensitive changes
 

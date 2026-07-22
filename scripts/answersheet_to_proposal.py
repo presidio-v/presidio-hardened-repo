@@ -29,6 +29,7 @@ prints URLs. Requires Python 3.11+ (for ``render.load_manifest`` / ``tomllib``).
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -169,7 +170,7 @@ def _criterion_params(criterion: str, status: str, justification: str) -> str:
 def build_urls(
     project_id: int,
     rows: list[tuple[str, str, str]],
-    max_url_len: int = 6000,
+    max_url_len: int = 7000,
     overrides: str | None = None,
     section: str = "choose",
 ) -> list[str]:
@@ -180,6 +181,10 @@ def build_urls(
     proposal (each carries the ``overrides`` param when one is set). A single
     criterion whose fragment alone exceeds the cap still gets its own URL rather
     than being dropped.
+
+    ``max_url_len`` defaults to 7000: comfortably under the bestpractices.dev
+    server's ~8 KB URI cap (a single 16 KB URL is rejected 414 "URI Too Long"),
+    while leaving headroom so no chunk trips the cap.
     """
     if not rows:
         raise ProposalError("no criteria parsed from the sheet — nothing to propose")
@@ -208,6 +213,27 @@ def build_urls(
         current.append(fragment)
     _flush()
     return urls
+
+
+def build_bestpractices_mapping(rows: list[tuple[str, str, str]]) -> dict[str, str]:
+    """Build the ``.bestpractices.json`` mapping the BadgeApp reads from a repo.
+
+    The OpenSSF BadgeApp seeds proposed answers directly from a
+    ``.bestpractices.json`` file committed to a repo's root
+    (``ossf/best-practices-badge`` ``docs/bestpractices-json.md``). This sidesteps
+    the edit-URL length cap and the multi-URL clobber problem entirely: one file
+    carries every criterion. The object is keyed by ``<crit>_status`` and
+    ``<crit>_justification`` — the same field names as the URL params, but the
+    justifications are stored as plain JSON strings (NOT url-encoded).
+    """
+    if not rows:
+        raise ProposalError("no criteria parsed from the sheet — nothing to propose")
+    mapping: dict[str, str] = {}
+    for criterion, status, justification in rows:
+        mapping[f"{criterion}_status"] = status
+        if justification:
+            mapping[f"{criterion}_justification"] = justification
+    return mapping
 
 
 def resolve_project_id(args: argparse.Namespace) -> int:
@@ -248,7 +274,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo-path", default=".", help="target repo root (for the manifest)")
     parser.add_argument("--manifest", default="hardening.toml", help="manifest file (id source)")
     parser.add_argument("--id", type=int, default=None, help="project id override")
-    parser.add_argument("--max-url-len", type=int, default=6000, help="split URLs above this")
+    parser.add_argument("--max-url-len", type=int, default=7000, help="split URLs above this")
+    parser.add_argument(
+        "--bestpractices-json",
+        default=None,
+        metavar="PATH",
+        help="instead of URLs, write a .bestpractices.json mapping to PATH; commit it "
+        "to the target repo root and the OpenSSF BadgeApp seeds proposed answers from it "
+        "(sidesteps URL length + multi-tab clobber entirely)",
+    )
     parser.add_argument(
         "--section",
         default=None,
@@ -268,6 +302,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: sheet not found: {sheet_path}", file=sys.stderr)
         return 2
 
+    rows = parse_sheet(sheet_path.read_text(encoding="utf-8"))
+
+    # JSON mode: no project id or section needed — the file lives in the target
+    # repo and the BadgeApp links it to the registered project itself.
+    if args.bestpractices_json:
+        try:
+            mapping = build_bestpractices_mapping(rows)
+        except ProposalError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+        out_path = Path(args.bestpractices_json)
+        out_path.write_text(
+            json.dumps(mapping, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"# wrote {len(rows)} criteria to {out_path}")
+        print(
+            "# Commit this file as .bestpractices.json in the TARGET repo root; the OpenSSF "
+            "BadgeApp reads it directly to seed proposed answers (no URL length or clobber "
+            "limits). You remain the arbiter — the BadgeApp only proposes, you accept each."
+        )
+        return 0
+
     try:
         project_id = resolve_project_id(args)
     except ProposalError as exc:
@@ -275,7 +331,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     section = args.section or infer_section(sheet_path)
-    rows = parse_sheet(sheet_path.read_text(encoding="utf-8"))
     try:
         urls = build_urls(project_id, rows, args.max_url_len, args.overrides, section)
     except ProposalError as exc:
@@ -292,8 +347,19 @@ def main(argv: list[str] | None = None) -> int:
             f"# {len(rows)} criteria -> {len(urls)} proposal URLs for project "
             f"{project_id} ({forced}); open EACH ({per}):"
         )
+        print(
+            "\n"
+            "!!! ==================================================================== !!!\n"
+            "!!! OPEN AND SAVE EACH URL ONE AT A TIME, SEQUENTIALLY.                   !!!\n"
+            "!!! Do NOT open them all at once. Every URL edits the SAME section form,  !!!\n"
+            "!!! so if several tabs are open together each loads a stale all-'?' form  !!!\n"
+            "!!! and a later save CLOBBERS the answers you saved from an earlier tab.  !!!\n"
+            "!!! Open URL 1, review + SAVE, close it, THEN open URL 2, and so on.      !!!\n"
+            "!!! (Or use --bestpractices-json to avoid the split entirely.)            !!!\n"
+            "!!! ==================================================================== !!!"
+        )
         for n, url in enumerate(urls, 1):
-            print(f"\n## URL {n} of {len(urls)}")
+            print(f"\n## URL {n} of {len(urls)} — save this one before opening the next")
             print(url)
 
     print(

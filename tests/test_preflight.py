@@ -66,6 +66,11 @@ def _make_repo(root: Path, *, docs: bool = True) -> Path:
             p = root / rel
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(f"# {Path(rel).name}\nclean content\n", encoding="utf-8")
+        # The CI workflow must actually run the test suite for the CI check.
+        (root / ".github" / "workflows" / "ci.yml").write_text(
+            "name: CI\njobs:\n  test:\n    steps:\n      - run: pytest tests/\n",
+            encoding="utf-8",
+        )
     return root
 
 
@@ -111,6 +116,71 @@ def test_check_files_open_fill_marker_is_unmet(tmp_path: Path) -> None:
     arch = next(r for r in results if r.criterion == "documentation_architecture")
     assert arch.status == preflight.UNMET
     assert "FILL" in arch.reason
+
+
+# --- continuous integration (Fix 2a: any test-running workflow) ------------
+
+
+def _write_workflow(repo: Path, name: str, content: str) -> None:
+    d = repo / ".github" / "workflows"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / name).write_text(content, encoding="utf-8")
+
+
+def test_ci_no_workflows_dir_is_unmet(tmp_path: Path) -> None:
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.UNMET
+    assert "no .github/workflows" in result.reason
+
+
+def test_ci_empty_workflows_dir_is_unmet(tmp_path: Path) -> None:
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.UNMET
+    assert "no workflow files" in result.reason
+
+
+def test_ci_pytest_yml_is_met(tmp_path: Path) -> None:
+    # Flagship ikigov-assess uses pytest.yml, not ci.yml — must count as MET.
+    _write_workflow(
+        tmp_path, "pytest.yml", "name: Tests\njobs:\n  run:\n    steps:\n      - run: pytest -q\n"
+    )
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.MET
+    assert "pytest.yml" in result.reason
+
+
+def test_ci_test_job_name_is_met(tmp_path: Path) -> None:
+    _write_workflow(
+        tmp_path,
+        "build.yaml",
+        "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make check\n",
+    )
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.MET
+    assert "build.yaml" in result.reason
+
+
+def test_ci_only_scorecard_is_unmet(tmp_path: Path) -> None:
+    _write_workflow(
+        tmp_path,
+        "scorecard.yml",
+        "name: Scorecard\njobs:\n  analysis:\n    runs-on: ubuntu-latest\n",
+    )
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.UNMET
+    assert "scorecard.yml" in result.reason
+
+
+def test_ci_ubuntu_latest_is_not_a_false_positive(tmp_path: Path) -> None:
+    # 'ubuntu-latest' contains the substring 'test' but not the whole word.
+    _write_workflow(
+        tmp_path,
+        "lint.yml",
+        "jobs:\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ruff check .\n",
+    )
+    (result,) = preflight.check_continuous_integration(tmp_path)
+    assert result.status == preflight.UNMET
 
 
 # --- SPDX sampling ---------------------------------------------------------
@@ -411,6 +481,45 @@ def test_run_checks_and_report(
     assert counts[preflight.MET] >= 1
     assert counts[preflight.HUMAN] >= 1
     assert sum(counts.values()) == len(results)
+
+
+def test_run_checks_scopes_gold_only_criteria(
+    tmp_path: Path, tokens: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(preflight, "_gh_available", lambda: False)
+    repo = _make_repo(tmp_path)
+    silver = {r.criterion for r in preflight.run_checks(repo, "silver", tokens, "acme-v/acme-lib")}
+    gold = {r.criterion for r in preflight.run_checks(repo, "gold", tokens, "acme-v/acme-lib")}
+    # Gold-only criteria are not reported (as UNMET or anything) at silver.
+    assert "per_file_license_spdx" not in silver
+    assert "require_2FA" not in silver
+    # But they are reported at gold.
+    assert "per_file_license_spdx" in gold
+    assert "require_2FA" in gold
+
+
+def test_main_silver_omits_gold_criteria(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(preflight, "_gh_available", lambda: False)
+    repo = _make_repo(tmp_path)
+    rc = preflight.main(["--repo-path", str(repo), "--tier", "silver"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "per_file_license_spdx" not in out
+    assert "require_2FA" not in out
+
+
+def test_main_gold_tier_runs_and_lists_gold_criteria(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(preflight, "_gh_available", lambda: False)
+    repo = _make_repo(tmp_path)
+    rc = preflight.main(["--repo-path", str(repo), "--tier", "gold"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "per_file_license_spdx" in out
+    assert "require_2FA" in out
 
 
 def test_main_reports_and_exits_zero(

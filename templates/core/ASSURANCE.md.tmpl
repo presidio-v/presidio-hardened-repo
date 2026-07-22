@@ -61,8 +61,12 @@ CWE-74); memory safety (CWE-119 family) — note if the language is memory-safe;
 cryptographic misuse (CWE-327, CWE-916); hard-coded / exposed secrets (CWE-798,
 CWE-532); insecure network / SSRF (CWE-319, CWE-295); unsafe deserialization
 (CWE-502); vulnerable dependencies (CWE-1104). Then state that these classes are
-checked continuously by CodeQL, bandit (ruff `S` rules), and OpenSSF Scorecard on
-every push and pull request, plus any independent review performed. -->
+checked continuously by CodeQL and OpenSSF Scorecard on every push and pull
+request, name this project's actual SAST tools (see the marker below), and note
+any independent review performed. -->
+<!-- FILL:sast-tools — name the SAST tools this project actually runs. CodeQL and OpenSSF
+     Scorecard run in every family repo; add bandit / ruff `S` ONLY if this repo enables
+     them — not every repo does. Do not claim a scanner the repo does not run. -->
 <!-- FILL:weakness-argument -->
 
 ## Conclusion

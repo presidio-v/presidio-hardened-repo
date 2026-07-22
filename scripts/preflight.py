@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -59,16 +60,27 @@ GRP_REMOTE = "Remote (gh)"
 GRP_HUMAN = "Human evidence"
 
 # Tier ordering; higher tiers include every lower tier's criteria.
-TIER_ORDER = {"passing": 0, "silver": 1}
+TIER_ORDER = {"passing": 0, "silver": 1, "gold": 2}
 
 # Minimum statement-coverage percentage a tier requires. Branch coverage is
-# reported for information only (no passing/silver branch floor is a MUST).
-TIER_STATEMENT_FLOOR = {"passing": 60.0, "silver": 80.0}
+# reported for information only (no passing/silver branch floor is a MUST; gold
+# adds a branch floor, checked in CI, not gated here).
+TIER_STATEMENT_FLOOR = {"passing": 60.0, "silver": 80.0, "gold": 90.0}
 
 # Coverage criterion name differs by tier.
 COVERAGE_CRITERION = {
     "passing": "test_most",
     "silver": "test_statement_coverage80",
+    "gold": "test_statement_coverage90",
+}
+
+# Some criteria are only assessed at (and above) a given tier. A criterion not
+# listed here defaults to "passing" (assessed at every tier). This keeps a
+# passing/silver preflight from reporting gold-only criteria (per-file SPDX,
+# org-wide 2FA) as UNMET — they belong to the gold tier alone.
+CRITERION_MIN_TIER = {
+    "per_file_license_spdx": "gold",
+    "require_2FA": "gold",
 }
 
 
@@ -92,7 +104,6 @@ FILE_CHECKS: list[tuple[tuple[str, ...], str, str]] = [
     ((".github/dependabot.yml", ".github/dependabot.yaml"), "dependency_monitoring", "passing"),
     ((".github/workflows/scorecard.yml",), "static_analysis_scorecard", "passing"),
     ((".github/workflows/codeql.yml",), "static_analysis_common_vulnerabilities", "passing"),
-    ((".github/workflows/ci.yml",), "test_continuous_integration", "passing"),
     (("CODE_OF_CONDUCT.md",), "code_of_conduct", "silver"),
     (("GOVERNANCE.md",), "governance", "silver"),
     (("ARCHITECTURE.md",), "documentation_architecture", "silver"),
@@ -143,6 +154,36 @@ def check_files(repo: Path, tier: str) -> list[Result]:
         else:
             results.append(Result(GRP_FILES, criterion, MET, found.name))
     return results
+
+
+# Whole-word "test"/"tests" so a job name / step matches but "ubuntu-latest" does not.
+_TEST_WORD_RE = re.compile(r"\btests?\b")
+
+
+def check_continuous_integration(repo: Path) -> list[Result]:
+    """Any ``.github/workflows/*.yml|*.yaml`` that runs the test suite satisfies CI.
+
+    The criterion is met by *any* workflow whose contents invoke ``pytest`` or
+    carry a job/step/name with the whole word "test" — not only a file literally
+    named ``ci.yml`` (flagship repos use ``pytest.yml``, ``test.yml``, …). Reports
+    which workflow satisfied it.
+    """
+    crit = "test_continuous_integration"
+    wf_dir = repo / ".github" / "workflows"
+    if not wf_dir.is_dir():
+        return [Result(GRP_FILES, crit, UNMET, "no .github/workflows/ directory")]
+    workflows = sorted(p for p in wf_dir.iterdir() if p.is_file() and p.suffix in (".yml", ".yaml"))
+    if not workflows:
+        return [Result(GRP_FILES, crit, UNMET, "no workflow files under .github/workflows/")]
+    for wf in workflows:
+        try:
+            text = wf.read_text(encoding="utf-8", errors="replace").lower()
+        except OSError:
+            continue
+        if "pytest" in text or _TEST_WORD_RE.search(text):
+            return [Result(GRP_FILES, crit, MET, f"{wf.name} runs the test suite")]
+    scanned = ", ".join(w.name for w in workflows)
+    return [Result(GRP_FILES, crit, UNMET, f"no test-running workflow (scanned: {scanned})")]
 
 
 def _has_spdx(path: Path) -> bool:
@@ -397,13 +438,19 @@ def run_checks(repo: Path, tier: str, tokens: dict[str, str], slug: str) -> list
     reviewer = tokens.get("PEOPLE_REVIEWER", "")
     results: list[Result] = []
     results += check_files(repo, tier)
+    results += check_continuous_integration(repo)
     results += check_spdx_headers(repo)
     results += check_fuzzing(repo)
     results += check_coverage(repo, tier)
     results += check_registration(tokens)
     results += check_remote(slug, reviewer)
     results += human_criteria(tier)
-    return results
+    # Drop criteria that belong only to a higher tier than the one requested
+    # (e.g. per-file SPDX and org 2FA are gold-only; do not report them UNMET at
+    # passing/silver). Criteria absent from the map default to "passing".
+    return [
+        r for r in results if _tier_applies(CRITERION_MIN_TIER.get(r.criterion, "passing"), tier)
+    ]
 
 
 def print_report(results: list[Result], tier: str, slug: str) -> Counter[str]:
