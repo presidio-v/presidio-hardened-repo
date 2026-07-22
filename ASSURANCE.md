@@ -85,8 +85,9 @@ bandit via ruff `S`, Scorecard). A gap in any one is caught by another.
 
 **Economy of mechanism.** The scripts are stdlib-only Python — no jinja, no
 template engine, no dependency graph dragged into the repos being hardened, and no
-bespoke cryptography. All cryptographic operations (SSH tag signing, provenance)
-are delegated to vetted standard tools (`git`, `ssh`, GitHub OIDC). Being pure
+bespoke cryptography. The one cryptographic operation the release flow relies on —
+SSH signing of release tags — is delegated to vetted standard tools (`git`,
+`ssh`) with the shared org key. Being pure
 Python, the code is memory-safe; there is no manual memory management to get
 wrong.
 
@@ -96,7 +97,7 @@ wrong.
 |---|---|
 | **Improper input validation / injection (CWE-20, CWE-74)** | The only untrusted inputs are the tool's own TOML manifest and template files. `render.py` fails hard on undefined/unresolved tokens. Subprocess calls to `git`/`gh` are built as argument lists (never a shell string) and quoted with `shlex` for display only; there is no `shell=True`. bandit (ruff `S`) checks subprocess use continuously. |
 | **Memory safety (CWE-119 family)** | N/A in the classic sense — pure Python, memory-safe; no manual allocation, no unsafe FFI. |
-| **Cryptographic misuse (CWE-327, CWE-916)** | N/A — the tool implements no cryptography. Tag signing is delegated to `git`/`ssh` with the vetted org key; provenance to GitHub OIDC. There is no bespoke crypto to misuse. |
+| **Cryptographic misuse (CWE-327, CWE-916)** | N/A — the tool implements no cryptography. Release-tag signing is delegated to `git`/`ssh` with the vetted org key. There is no bespoke crypto to misuse. |
 | **Hard-coded / exposed secrets (CWE-798, CWE-532)** | The tool stores no secret: no GitHub token (it uses the operator's `gh` session), no signing key (delegated). Scorecard's Token-Permissions and secret-scanning, plus the anti-leak template test, guard against secret material entering the repo. |
 | **Insecure network / SSRF (CWE-319, CWE-295)** | N/A — the tool opens no network connections itself. All remote calls go through `gh`, which enforces TLS to the GitHub API. There is no user-supplied URL fetch. |
 | **Unsafe deserialization (CWE-502)** | Only trusted, first-party TOML (`tomllib`) and the tool's own JSON from `gh`/coverage are parsed; no untrusted pickle/YAML/eval. |

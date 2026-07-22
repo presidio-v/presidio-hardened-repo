@@ -53,19 +53,19 @@ These rendered files back the silver answers; confirm each is on `main`:
 |---|---|---|
 | `dco` | **Met** | Every commit must carry a DCO `Signed-off-by` line (`git commit -s`); enforced in review. Documented at `REPO/blob/main/CONTRIBUTING.md#licensing-and-developer-certificate-of-origin-dco`. Inbound = outbound `MIT`. |
 | `code_of_conduct` | **Met** | Contributor Covenant at `REPO/blob/main/CODE_OF_CONDUCT.md` (standard location). |
-| `governance` | **Met** | Governance model documented at `REPO/blob/main/GOVERNANCE.md` — decision-making, escalation, and security/API change rules. <!-- FILL:governance — confirm GOVERNANCE.md describes the actual decision model for this project. --> |
+| `governance` | **Met** | `REPO/blob/main/GOVERNANCE.md` documents the actual model — maintainer-led, single-steward (PRESIDIO Group / `presidio-v` org): rough-consensus decisions on the PR, a heightened bar for the named security-sensitive modules, SEMVER-governed API changes, and escalation to the steward org. |
 | `roles_responsibilities` | **Met** | Key roles (steward org, maintainer, security contact, release manager, contributor) documented at `REPO/blob/main/GOVERNANCE.md#roles-and-responsibilities`. |
-| `access_continuity` | **Met** | <!-- FILL:access-continuity — This is a silver MUST. Argue continuity is a property of the STEWARD ORGANISATION, not one person. The reference project cited: repo owned by a GitHub org (not a personal account); package publishing via Trusted Publishing/OIDC bound to the org repo + a gated release environment (no personal token that dies with an individual); release signing key held in the org password manager and recoverable; release process fully documented; more than one person able to assume each role. Adapt to THIS project's actual custody arrangements — do not claim org continuity the project does not have. --> URL: `REPO/blob/main/GOVERNANCE.md#project-continuity`. |
-| `bus_factor` (SHOULD) | **Met** | <!-- FILL:bus-factor — argue more than one person can assume the maintainer, security-contact, and release-manager roles and that release credentials are org-held and recoverable (not tied to one machine). If genuinely single-maintainer with no org backing, this is honestly Unmet — say so; it is a SHOULD, not a blocker. --> See `REPO/blob/main/GOVERNANCE.md#project-continuity`. |
+| `access_continuity` | **Met** | Continuity is a property of the steward organisation, not one person. The repository is owned by the `presidio-v` GitHub **organisation** (not a personal account), so org owners can grant repo/release access to another member at any time. There is no personal publish token to lose — the project is delivered from GitHub by symlink install, not a package index. The release signing key is held in the org password manager and is recoverable (not solely on one machine), and the signed-tag release process is documented in `SECURITY.md`. Roles are held by function within PRESIDIO Group. URL: `REPO/blob/main/GOVERNANCE.md#project-continuity`. |
+| `bus_factor` (SHOULD) | **Met** | Backed by the steward org rather than a lone maintainer: PRESIDIO Group staffs more than one person able to assume the maintainer, security-contact, and release-manager roles, and release credentials (org-owned repo, recoverable signing key in the org password manager) are not tied to one individual's machine. See `REPO/blob/main/GOVERNANCE.md#project-continuity`. |
 
 ## Documentation
 
 | Criterion | Status | Justification to paste |
 |---|---|---|
-| `documentation_roadmap` | **Met** | `REPO#roadmap` includes a "Planned direction (next 12 months)" section. <!-- FILL:documentation-roadmap — confirm the README roadmap names real intended work for this project. --> |
+| `documentation_roadmap` | **Met** | `REPO#roadmap` ("Roadmap (next 12 months)") names real near-term work: dogfood the skill to silver, then apply it to `presidio-hardened-ikigov-assess` and `-arch-translucency`; extend `preflight.py` to the full gold set; ship a reproducible-build helper; and (under evaluation) a non-Python layer and marketplace packaging. |
 | `documentation_architecture` | **Met** | `REPO/blob/main/ARCHITECTURE.md` — components, core-flow pipeline, and trust boundaries; linked from the README. |
-| `documentation_security` | **Met** | `REPO/blob/main/SECURITY.md` documents the security controls, threat model, and reporting process; `ARCHITECTURE.md#trust-boundaries` states the trust boundaries. <!-- FILL:documentation-security — point at where the full threat model / design rationale lives for this project. --> |
-| `documentation_quick_start` | **Met** | README "Quick Start" (before/after example) plus `docs/`. <!-- FILL:documentation-quick-start — name the actual quick-start material. --> |
+| `documentation_security` | **Met** | `SECURITY.md` documents the controls, threat model, and reporting process; `ARCHITECTURE.md#trust-boundaries` states the trust boundaries; and the consolidated four-part assurance case (threat model, trust boundaries, secure-design argument, weakness-class countermeasures) lives in `REPO/blob/main/ASSURANCE.md`. |
+| `documentation_quick_start` | **Met** | README "Install" + "How it works, briefly" give the quick-start path — `scripts/install-skill.sh` to symlink the skill, then ask Claude to "harden this repo to OpenSSF silver"; `SKILL.md` documents the orchestration loop. |
 | `documentation_current` | **Met** | Docs track the current release line; per-version roadmap and hand-written `CHANGELOG.md` are kept in sync with each release. |
 | `documentation_achievements` | **Met** | The OpenSSF Best Practices badge is displayed and hyperlinked on the README front page. |
 
@@ -85,25 +85,25 @@ These rendered files back the silver answers; confirm each is on `main`:
 |---|---|---|
 | `tests_documented_added` | **Met** | `REPO/blob/main/CONTRIBUTING.md#tests` states the policy that changes adding/modifying functionality ship with tests in the same PR. |
 | `test_policy_mandated` | **Met** | Formal written policy at `REPO/blob/main/CONTRIBUTING.md#tests`: functionality changes ship with tests; bug fixes include a regression test. Enforced in review and by the coverage gate. |
-| `automated_integration_testing` | **Met** | `REPO/blob/main/.github/workflows/ci.yml` runs the full suite on every push and pull request. <!-- FILL:automated-integration-testing — note the version/platform matrix and any partner/end-to-end suite. --> |
-| `regression_tests_added50` | **Met** | Policy requires a regression test with every bug fix. <!-- FILL:regression-tests-50 — cite one worked example and confirm >50% of bugs fixed in the last 6 months carry a regression test. --> |
-| `test_statement_coverage80` | **Met** | <!-- FILL:coverage80 — cite the enforced coverage gate (e.g. `--cov-fail-under=90` in `ci.yml` / build config) showing statement coverage ≥80%. --> |
-| `warnings_strict` | **Met** | <!-- FILL:warnings-strict — list the enabled lint rule sets (incl. security rules) and that CI fails on any finding. --> |
-| `coding_standards` | **Met** | `REPO/blob/main/CONTRIBUTING.md#style` names the required style/lint tool; config in the project's build/lint config. <!-- FILL:coding-standards — name the tool. --> |
+| `automated_integration_testing` | **Met** | `.github/workflows/ci.yml` runs the full suite on every push and pull request across a Python 3.11 / 3.12 / 3.13 matrix on `ubuntu-latest`, plus lint, SPDX guard, Atheris fuzz, and SBOM jobs. |
+| `regression_tests_added50` | **Met** | Policy (`CONTRIBUTING.md#tests`) mandates a regression test with every bug fix, enforced in review and by the coverage gate. The repo is newly public with no bug-fix history yet to measure the 50% against; the policy is in force from the first fix. |
+| `test_statement_coverage80` | **Met** | CI enforces `--cov-fail-under=90` (statement) in `.github/workflows/ci.yml`; the suite currently measures ~96% statement coverage over `scripts/` — well above the 80% floor. |
+| `warnings_strict` | **Met** | `ruff` rule set `E, F, W, I, N, UP, S, B, A, C4, SIM, TCH` (includes the bandit-equivalent `S` security rules); only `S101`/`S603`/`S607` excluded with documented rationale (`pyproject.toml`). CI (`ci.yml` lint job) fails on any finding. |
+| `coding_standards` | **Met** | `REPO/blob/main/CONTRIBUTING.md#style` names **ruff** (lint + format) as the required tool; its configuration lives in `pyproject.toml` under `[tool.ruff]` (line length 100, target `py311`, the hardened family rule set). |
 | `coding_standards_enforced` | **Met** | The style/lint check runs in CI on every PR (FLOSS enforcement). |
-| `installation_common` | **Met** | Standard install from the package index. <!-- FILL:installation-common — give the one-line install command for presidio_hardened_repo. --> |
+| `installation_common` | **Met** | Installed with the standard Claude Code skill convention — `scripts/install-skill.sh` symlinks the repo into `~/.claude/skills/` (and removing the symlink uninstalls it). It is not distributed via a package index. |
 | `installation_development_quick` | **Met** | `REPO/blob/main/CONTRIBUTING.md#local-verification` — documents the one setup path that installs everything needed to build and test. |
-| `build_repeatable` (SHOULD) | **Met** | Artefacts are built via the standard flow against a fully pinned dependency graph on GitHub-hosted runners with SHA-pinned Actions; the build is deterministic from pinned sources. <!-- FILL:build-repeatable — confirm the lockfile and pinning; do NOT claim bit-for-bit hermetic reproducibility unless it is actually true. --> |
-| `build_standard_variables` | **N/A** | <!-- FILL:build-standard-variables — DEFAULT N/A for a pure-python package with no compiler/linker; if the project compiles native code, describe `CC`/`CFLAGS`/`LDFLAGS` handling instead. --> |
-| `build_preserve_debug` | **N/A** | <!-- FILL:build-preserve-debug — DEFAULT N/A if there are no compiled artefacts; otherwise describe separable debug info. --> |
-| `build_non_recursive` | **N/A** | <!-- FILL:build-non-recursive — DEFAULT N/A if there is no recursive make/subdirectory build; otherwise confirm the build is non-recursive. --> |
-| `installation_standard_variables` | **N/A** | <!-- FILL:installation-standard-variables — DEFAULT N/A if installed via a language package manager (pip/uv/cargo/npm); `DESTDIR`-style conventions do not apply. --> |
+| `build_repeatable` (SHOULD) | **Met** | The runtime dependency graph is empty (standard library only), so the installed skill is trivially reproducible from source with no third-party runtime versions to vary. CI Actions are SHA-pinned. There is no lockfile because there are no runtime dependencies to pin; dev/fuzz tooling versions are not lockfile-pinned, so bit-for-bit hermetic reproducibility is not claimed. |
+| `build_standard_variables` | **N/A** | Pure-Python skill with no compiler/linker step; `CC`/`CFLAGS`/`LDFLAGS` do not apply. |
+| `build_preserve_debug` | **N/A** | No compiled artefacts; there is no separable debug information. |
+| `build_non_recursive` | **N/A** | No recursive make or subdirectory build; the scripts run directly. |
+| `installation_standard_variables` | **N/A** | Installed by symlink (`install-skill.sh`) / editable pip install; `DESTDIR`-style conventions do not apply. |
 
 ## Dependencies & components
 
 | Criterion | Status | Justification to paste |
 |---|---|---|
-| `external_dependencies` | **Met** | Dependencies are listed machine-readably in the project manifest and fully pinned in a lockfile; a CycloneDX SBOM is generated per release in CI. <!-- FILL:external-dependencies — name the manifest and lockfile for python. --> |
+| `external_dependencies` | **Met** | Dependencies are listed machine-readably in `pyproject.toml` — the runtime set is empty (standard library only); the `dev` (ruff, pytest, pytest-cov) and `fuzz` (atheris) extras are declared there. A CycloneDX SBOM is generated in CI (`ci.yml` `sbom` job). There is no lockfile because there are no runtime dependencies to pin. |
 | `updateable_reused_components` | **Met** | All reused components are standard package-index packages installed via the package manager (no vendored copies); Dependabot tracks updates. |
 | `interfaces_current` | **Met** | Dependencies are kept current (Dependabot + dependency floors), the public API is tracked in `SEMVER.md`, and the code does not rely on deprecated FLOSS functions where alternatives exist. |
 
@@ -111,35 +111,35 @@ These rendered files back the silver answers; confirm each is on `main`:
 
 | Criterion | Status | Justification to paste |
 |---|---|---|
-| `assurance_case` | **Met** (URL required) | URL: `REPO/blob/main/ASSURANCE.md`. Consolidated assurance case with all four required parts (threat model, trust boundaries, secure-design-principles argument, common-implementation-weakness argument). <!-- FILL:assurance-case — confirm ASSURANCE.md is fully filled for THIS project (its own FILL markers resolved); the badge reviewer reads this document. --> |
-| `implement_secure_design` | **Met** | <!-- FILL:implement-secure-design — argue this project applies: fail-safe defaults / secure by default, complete mediation, least privilege, defence in depth, economy of mechanism (vetted crypto primitives, no bespoke crypto). Ground each in a real control. See `REPO/blob/main/ARCHITECTURE.md` and `SECURITY.md`. --> |
-| `input_validation` | **Met** | <!-- FILL:input-validation — state that data crossing the untrusted-input boundary is validated before use, with a concrete example from this codebase. See `ARCHITECTURE.md#trust-boundaries`. --> |
-| `hardening` | **Met** | <!-- FILL:hardening — list the hardening measures actually applied (e.g. TLS enforced on egress, secret scrubbing in logs, SHA-pinned GitHub Actions, digest-pinned base images). --> |
-| `crypto_weaknesses` | **Met** | <!-- FILL:crypto-weaknesses — security functions use strong algorithms only (e.g. SHA-256/HMAC-SHA256/Ed25519); no MD5/SHA-1/DES for security purposes. N/A if the project uses no crypto. --> |
-| `crypto_algorithm_agility` (SHOULD) | **N/A** | <!-- FILL:crypto-algorithm-agility — DEFAULT for a library with no user-facing crypto-negotiation surface: primitives are pinned to current strong choices and algorithm migration is a versioned format change, not a runtime switch. Confirm this holds, or answer Met if the project genuinely negotiates suites. It is a SHOULD. --> |
-| `crypto_credential_agility` | **Met** | <!-- FILL:crypto-credential-agility — confirm all keys/secrets are supplied from OUTSIDE the source tree and are rotatable without recompilation (env vars / deployment-supplied files), none hard-coded. N/A if no credentials. --> |
-| `crypto_used_network` | **Met** | Network communication uses TLS. <!-- FILL:crypto-used-network — confirm, or N/A if the project makes no network calls. --> |
-| `crypto_tls12` | **Met** | The HTTP client uses TLS ≥1.2. <!-- FILL:crypto-tls12 — confirm, or N/A. --> |
-| `crypto_certificate_verification` | **Met** | TLS certificate verification is on by default; verification is not disabled. <!-- FILL:crypto-certificate-verification — confirm, or N/A. --> |
-| `crypto_verification_private` | **Met** | Certificate verification precedes transmission of any private data. <!-- FILL:crypto-verification-private — confirm, or N/A. --> |
-| `signed_releases` | **Met** | Releases are cryptographically signed and the process for obtaining/verifying keys is documented at `REPO/blob/main/SECURITY.md#obtaining-the-public-signing-keys`: build provenance attestation, SSH-signed git tags with the public key in `REPO/blob/main/allowed_signers`. <!-- FILL:signed-releases — confirm the signing methods actually in use for this project. --> |
-| `version_tags_signed` | **Met** | Every release is a git tag, SSH-signed with the org key and shown as Verified on GitHub. |
-| `sites_password_security` | **N/A** | <!-- FILL:sites-password-security — DEFAULT N/A: the project stores no user passwords. Confirm; if it runs a service that authenticates users, describe password storage instead. --> |
+| `assurance_case` | **Met** (URL required) | URL: `REPO/blob/main/ASSURANCE.md`. Fully written for this project (no open FILL markers): the four required parts — threat model (assets + threat/control table), trust boundaries, secure-design-principles argument, and common-implementation-weakness (CWE) countermeasures. |
+| `implement_secure_design` | **Met** | Grounded in real controls (`ASSURANCE.md#3`): fail-safe defaults (`render.py` fails hard on unresolved tokens; `gh_settings.py` is dry-run until `--apply`, irreversible actions gated behind `--yes`); complete mediation (every emitted file passes `render.py check`, preflight re-checks at acceptance); least privilege (tool holds no token or key; emitted workflows ship `permissions: contents: read`); defence in depth (strict render + anti-leak test + preflight + CodeQL/ruff-S/Scorecard); economy of mechanism (stdlib-only, no bespoke crypto). |
+| `input_validation` | **Met** | The untrusted inputs (the `hardening.toml` manifest and template files) are validated before use at the `manifest + templates → render.py` boundary: `render.py` raises `RenderError` on any undefined or unresolved token rather than emit a partial file, and its `check` pass blocks open FILL markers. Subprocess calls are built as argument lists (no `shell=True`). See `ARCHITECTURE.md#trust-boundaries`. |
+| `hardening` | **Met** | SHA-pinned GitHub Actions across all workflows; least-privilege `permissions: contents: read` tokens (elevated only where CodeQL needs `security-events: write`); `persist-credentials: false` on checkouts; the tool stores no token or key; fail-hard rendering; and a CI anti-leak/round-trip test over the template tree. |
+| `crypto_weaknesses` | **N/A** | The project implements no cryptographic mechanisms of its own; the only crypto (SSH release-tag signing) is delegated to OpenSSH using Ed25519. No MD5/SHA-1/DES is used for any security purpose anywhere in the codebase. |
+| `crypto_algorithm_agility` (SHOULD) | **N/A** | No user-facing crypto-negotiation surface; the tool implements no crypto. The delegated signing algorithm (Ed25519) is a versioned choice in `allowed_signers`, not a runtime switch. |
+| `crypto_credential_agility` | **Met** | No keys or secrets live in the source tree. The tool holds no credential of its own — it borrows the operator's already-authenticated `gh` session and delegates tag signing to `git`/`ssh` with the org key; every credential is external and rotatable without recompilation. Verified: no cred-shaped file is tracked. |
+| `crypto_used_network` | **N/A** | The tool opens no network connection of its own. All remote calls are delegated to `gh`/`git`, which use TLS to the GitHub API. |
+| `crypto_tls12` | **N/A** | No direct network client in the tool; the delegated `gh`/`git` transports enforce TLS ≥1.2. |
+| `crypto_certificate_verification` | **N/A** | No direct TLS client; certificate verification is handled (and not disabled) by the delegated `gh`/`git` tools. |
+| `crypto_verification_private` | **N/A** | The tool transmits no private data over its own connections; it opens none. |
+| `signed_releases` | **Unmet (pending first release)** | The signing infrastructure is in place — the org release-signing public key is published in `REPO/blob/main/allowed_signers` and the SSH-signed-tag + provenance flow is documented at `REPO/blob/main/SECURITY.md#verifying-releases-and-obtaining-public-signing-keys`. No release tag has been cut yet, so nothing is signed. Becomes **Met** once the first `vX.Y.Z` tag is SSH-signed and GitHub-verified. |
+| `version_tags_signed` | **Unmet (pending first release)** | No git tags exist yet on this newly public repo. The org signing key and `allowed_signers` are ready; becomes **Met** with the first SSH-signed, GitHub-verified release tag. |
+| `sites_password_security` | **N/A** | The project stores no user passwords and runs no authenticating service. |
 
 ## Analysis & monitoring
 
 | Criterion | Status | Justification to paste |
 |---|---|---|
-| `static_analysis_common_vulnerabilities` | **Met** | CodeQL (`REPO/blob/main/.github/workflows/codeql.yml`) and OpenSSF Scorecard run on every push/PR. <!-- FILL:static-analysis-cve — add the language-specific security linter (e.g. bandit via ruff `S` rules for Python). --> |
-| `dynamic_analysis_unsafe` | **N/A** | <!-- FILL:dynamic-analysis-unsafe — DEFAULT N/A if python is memory-safe; note any fuzzing that runs regardless. If the project has a memory-unsafe component, describe the dynamic tooling used against it. --> |
+| `static_analysis_common_vulnerabilities` | **Met** | CodeQL `security-extended` (`REPO/blob/main/.github/workflows/codeql.yml`) and OpenSSF Scorecard run on every push/PR, plus the bandit-equivalent ruff `S` rules in the CI lint job. |
+| `dynamic_analysis_unsafe` | **N/A** | Pure Python — memory-safe, no memory-unsafe component. An Atheris fuzz harness (`fuzz/fuzz_render.py`) runs in CI regardless. |
 | `dependency_monitoring` | **Met** | Dependabot + dependency audit in CI + OpenSSF Scorecard continuously check external dependencies for known vulnerabilities. |
 
 ## Accessibility & internationalization
 
 | Criterion | Status | Justification to paste |
 |---|---|---|
-| `accessibility_best_practices` | **N/A** | <!-- FILL:accessibility — DEFAULT N/A for a developer library with no graphical or end-user UI. If the project ships a UI, this is NOT N/A — describe accessibility conformance instead. --> |
-| `internationalization` | **N/A** | <!-- FILL:internationalization — DEFAULT N/A: the project has no user-facing localizable UI strings. Confirm; if it does, describe i18n support. --> |
+| `accessibility_best_practices` | **N/A** | A developer CLI/skill with no graphical or end-user UI. |
+| `internationalization` | **N/A** | No user-facing localizable UI strings; output is developer-facing English CLI text. |
 
 ---
 

@@ -1,18 +1,29 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 PRESIDIO Group
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "presidio-hardened-repo"
 version = "0.1.0"
 description = "Claude Code skill that hardens a GitHub repo to a high OpenSSF Scorecard score and the OpenSSF Best Practices badge."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "PRESIDIO Group" }]
 dependencies = []
 
 [project.optional-dependencies]
 dev = ["ruff", "pytest", "pytest-cov"]
 fuzz = ["atheris"]
+
+[tool.setuptools]
+# This repo is a skill (scripts + templates), not an importable library. Declare
+# no packages so an editable install provides metadata + dev/fuzz deps without
+# setuptools trying to auto-discover the top-level templates/plan/playbook dirs.
+packages = []
+py-modules = []
 
 [tool.ruff]
 line-length = 100

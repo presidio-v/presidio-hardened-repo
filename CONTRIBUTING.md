@@ -15,7 +15,7 @@ within 5 business days.
 Open a [GitHub issue](https://github.com/presidio-v/presidio-hardened-repo/issues). Search existing issues first.
 For a bug, include:
 
-- the installed version (`pip show presidio_hardened_repo`) and language-runtime version
+- the version you have checked out (`git rev-parse --short HEAD`, or the release tag) and language-runtime version
 - what you expected to happen, and what happened instead
 - a minimal reproduction if you can produce one
 

@@ -85,15 +85,11 @@ see [`ASSURANCE.md`](ASSURANCE.md).
 
 ## Verifying Releases and Obtaining Public Signing Keys
 
-Release artefacts and git tags are signed. There is no key to fetch by hand for
-artefact verification; the trusted identities are described below.
-
-- **Release artefacts** are verified with Sigstore-backed build provenance. The
-  trusted identity is the repository's OIDC signer — run:
-
-  ```bash
-  gh attestation verify <artefact> --repo presidio-v/presidio-hardened-repo
-  ```
+This project is installed by symlinking the repository into `~/.claude/skills/`
+(see `scripts/install-skill.sh`); it is **not** published to PyPI or any other
+package index, so there is no package artefact to verify. A release is a git tag
+on this repository, and those tags are SSH-signed. The signing key and how to
+verify a tag are described below.
 
 - **Git release tags** are SSH-signed with the organisation's release signing
   key, which is registered as a **signing key** on the maintainer's GitHub
@@ -110,7 +106,3 @@ artefact verification; the trusted identities are described below.
   ```bash
   git -c gpg.ssh.allowedSignersFile=allowed_signers verify-tag <tag>
   ```
-
-- **Package-registry releases** carry PEP 740 (or the registry's equivalent)
-  attestations published via Trusted Publishing (OIDC, no stored API tokens);
-  standard tooling and the registry UI surface these automatically.

@@ -32,8 +32,9 @@ minor line. There are no grandfathered names.
   CHANGELOG) at least one minor before any change.
 - **Major (1.0.0+):** the only place deprecated surface may be removed.
 
-**Pin guidance for integrators:** pin `presidio_hardened_repo` to the current minor
-in production and run the verification step (below) in your CI on every upgrade.
+**Pin guidance for integrators:** the skill is installed from a clone, not a
+package index, so "pinning" means checking out a released `vX.Y.*` tag (rather
+than tracking `main`) and running the verification step (below) on every upgrade.
 
 ## Behavioural guarantees (stronger than API stability)
 
