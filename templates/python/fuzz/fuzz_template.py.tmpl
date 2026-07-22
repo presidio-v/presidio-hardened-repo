@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: {{LEGAL_LICENSE}}
+# Copyright (c) {{YEAR}} {{LEGAL_COPYRIGHT_HOLDER}}
+"""Atheris coverage-guided fuzz harness for {{PROJECT_NAME}}.
+
+GOTCHAS (read before running):
+  - No macOS Atheris wheel: run this under Linux CI only (the fuzz job), never
+    on a developer Mac.
+  - No cp310 wheel: Atheris 3.x dropped Python 3.10. Run under Python 3.12.
+  - Editable installs can shadow the package: an `pip install -e .` checkout may
+    win over the installed distribution on sys.path. Install the built wheel (or
+    verify the import resolves to the real target module) before fuzzing, so the
+    code under coverage is the code you think it is.
+"""
+
+import atheris
+import sys
+
+
+def TestOneInput(data: bytes) -> None:
+    fdp = atheris.FuzzedDataProvider(data)
+    raw = fdp.ConsumeBytes(fdp.remaining_bytes())
+    # FILL:fuzz-target — import and call the real target module's parse/decode/
+    # digest function on `raw` (or a value derived from `fdp`). It MUST be the
+    # installed package, not a local re-implementation, so Scorecard's dynamic
+    # analysis exercises real code. Catch only the target's own declared/expected
+    # exceptions; let everything else propagate so Atheris records the crash.
+
+
+def main() -> None:
+    atheris.Setup(sys.argv, TestOneInput)
+    atheris.Fuzz()
+
+
+if __name__ == "__main__":
+    main()

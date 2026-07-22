@@ -1,0 +1,66 @@
+name: CodeQL
+
+# Real CodeQL analysis (free on public repos) uploads results to code scanning,
+# which OpenSSF Scorecard recognises as a SAST tool. Bandit is kept as a second,
+# fast Python-specific SAST pass — it is the *only* SAST on the private mirror,
+# where CodeQL is not available on the free tier.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "30 5 * * 1"
+
+# Least privilege: read-only token at the top level (OpenSSF Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL Analyze (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL results to code scanning
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          category: "/language:python"
+
+  bandit:
+    name: Bandit SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit SAST scan
+        run: |
+          bandit -r src/ \
+            --severity-level medium \
+            --confidence-level medium \
+            -f txt

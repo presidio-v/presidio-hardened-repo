@@ -1,0 +1,12 @@
+# Coverage config fragments — merge these blocks into the target pyproject.toml.
+
+[tool.coverage.run]
+source = ["{{PROJECT_PACKAGE}}"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+# CI enforces per-metric floors, not coverage's single blended fail_under:
+# statement >= 90% (--cov-fail-under=90, gold) and branch >= 80%. With branch
+# coverage on, one blended threshold would conflate the two metrics, so the
+# per-metric gate lives in the CI workflow instead.

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: read-only token for all jobs (OpenSSF Scorecard Token-Permissions).
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check scripts/ tests/
+      - run: ruff format --check scripts/ tests/
+      - name: SPDX header guard
+        run: python scripts/spdx_headers.py --check scripts/ tests/
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # This project uses tomllib + datetime.UTC (3.11+); no 3.10 in the matrix.
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      # Statement floor gated here; branch floor enforced in the next step.
+      # Both are set to the OpenSSF gold floors, which the suite currently clears
+      # (~96% statement / ~94% branch) with headroom.
+      - name: Run tests
+        run: pytest tests/ --cov=scripts --cov-branch --cov-report=xml --cov-report=json --cov-report=term --cov-fail-under=90
+      - name: Enforce branch coverage floor (>= 80%)
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+
+          totals = json.load(open("coverage.json"))["totals"]
+          branches = totals["num_branches"]
+          branch = 100 * totals["covered_branches"] / branches if branches else 100.0
+          print(f"branch coverage: {branch:.2f}%  (floor 80%)")
+          if branch < 80:
+              sys.exit(f"COVERAGE FAILURE: branch {branch:.2f}% < 80%")
+          PY
+      # coverage.xml is retained as a build artifact only; no external upload.
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage.xml
+
+  fuzz:
+    name: Fuzz (Atheris)
+    runs-on: ubuntu-latest # Atheris ships no macOS wheel — Linux only.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12" # Atheris 3.x has no cp310/cp311 wheel; pin 3.12.
+      - name: Install project + fuzz extra
+        run: pip install -e ".[fuzz]"
+      # Dynamic analysis with runtime assertions enabled: no -O, PYTHONOPTIMIZE unset.
+      - name: Run fuzz harnesses (time-boxed)
+        run: |
+          for f in fuzz/fuzz_*.py; do
+            echo "::group::$f"
+            python "$f" -atheris_runs=25000 -max_total_time=60
+            echo "::endgroup::"
+          done
+
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install project + SBOM tool
+        run: |
+          pip install -e .
+          pip install cyclonedx-bom
+      - name: Generate SBOM
+        run: cyclonedx-py environment --output-format JSON --output-file sbom.cdx.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: sbom.cdx.json

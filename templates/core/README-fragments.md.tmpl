@@ -1,0 +1,46 @@
+<!--
+  README fragments — NOT a full README. The target repo already has one.
+  Splice these blocks into the existing README.md:
+    (a) the badge block goes directly under the H1 title;
+    (b) the Roadmap section near the top-level narrative;
+    (c) the Governance/Architecture/Security links block near the bottom.
+  Delete this comment after splicing.
+-->
+
+<!-- (a) Badge block — place under the repo H1 title -->
+
+[![CI](https://github.com/{{REPO_SLUG}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{REPO_SLUG}}/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/{{REPO_SLUG}}/badge)](https://scorecard.dev/viewer/?uri=github.com/{{REPO_SLUG}})
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/{{BADGE_BESTPRACTICES_ID}}/badge)](https://www.bestpractices.dev/projects/{{BADGE_BESTPRACTICES_ID}})
+[![License: {{LEGAL_LICENSE}}](https://img.shields.io/badge/License-{{LEGAL_LICENSE}}-yellow.svg)](LICENSE)
+
+---
+
+<!-- (b) Roadmap section — backs the OpenSSF documentation_roadmap criterion -->
+
+## Roadmap (next 12 months)
+
+<!-- FILL:roadmap
+  Replace this list with 3-6 concrete, dated near-term items drawn from the
+  target repo's actual plan/milestones. Keep it honest: only list work that is
+  planned or in flight, not aspirational features. Suggested shape:
+
+  - **Now / in flight** — what is actively being built this quarter.
+  - **Next** — the following quarter's committed scope.
+  - **Later** — directional items under evaluation, marked as such.
+-->
+
+- **Now / in flight** — <!-- FILL:roadmap-now: current-quarter work -->
+- **Next** — <!-- FILL:roadmap-next: following-quarter committed scope -->
+- **Later** — <!-- FILL:roadmap-later: directional items, marked as under evaluation -->
+
+---
+
+<!-- (c) Governance, Architecture, Security links block — place near the README bottom -->
+
+## Governance, Architecture, Security
+
+- [Governance](GOVERNANCE.md) — roles, decision process, and how to become a maintainer.
+- [Architecture](ARCHITECTURE.md) — components, trust boundaries, and the core processing path.
+- [Assurance case](ASSURANCE.md) — the security claims and the evidence backing each one.
+- [Security policy](SECURITY.md) — supported versions and how to report a vulnerability.

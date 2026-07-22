@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Language-agnostic core: keep pinned GitHub Actions current. Language layers
+  # (e.g. the python overlay) add their own package-ecosystem blocks.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"

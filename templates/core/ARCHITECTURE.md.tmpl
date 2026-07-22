@@ -1,0 +1,37 @@
+# Architecture
+
+This document describes the high-level design of `{{PROJECT_NAME}}`: its
+components, how data flows through them, and the trust boundaries the project is
+built to enforce. For the security requirements and threat model that motivate
+this design, see [SECURITY.md](SECURITY.md) and the assurance case in
+[ASSURANCE.md](ASSURANCE.md).
+
+## Overview
+
+<!-- One paragraph: what this project is, what problem it solves, and where it
+sits in the system (library / service / CLI). State whether it is stateful,
+whether it makes network calls, and its most important design stance in one line. -->
+<!-- FILL:overview -->
+
+## Components
+
+<!-- The single-responsibility modules/units that make up the project and what
+each is responsible for. A table (Component | Responsibility) works well. Note
+the implementation/dependency order if the build has one (primitives outward). -->
+<!-- FILL:components -->
+
+## Data / processing flow
+
+<!-- How a request/input moves through the components as a pipeline, step by step.
+State the failure posture (e.g. fails closed — any control that raises stops
+processing) and any ordering that is load-bearing and part of the contract. -->
+<!-- FILL:processing-flow -->
+
+## Trust boundaries
+
+<!-- The boundaries where untrusted data enters or sensitive data leaves. For each:
+name the boundary (X -> Y), say whether it is an input-validation boundary or an
+egress boundary, and state the control applied there. This section is referenced
+by the assurance case (ASSURANCE.md) and by the documentation_architecture
+criterion, so keep the boundary names stable. -->
+<!-- FILL:trust-boundaries -->

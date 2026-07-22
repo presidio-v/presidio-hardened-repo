@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/presidio-v/presidio-hardened-repo/manifest.schema.json",
+  "title": "hardening.toml manifest",
+  "description": "Per-target manifest read by scripts/render.py to fill the hardening templates.",
+  "type": "object",
+  "required": ["project", "people", "legal"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name", "org", "description", "language", "tier"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "description": "GitHub repo name (also the bestpractices.dev URL slug)."},
+        "org": {"type": "string", "description": "GitHub org / owner."},
+        "package": {"type": "string", "description": "Python import package name; required when language = python."},
+        "description": {"type": "string"},
+        "language": {"type": "string", "enum": ["python", "none"]},
+        "tier": {"type": "string", "enum": ["passing", "silver", "gold"]}
+      }
+    },
+    "people": {
+      "type": "object",
+      "required": ["maintainer", "reviewer", "security_contact"],
+      "additionalProperties": false,
+      "properties": {
+        "maintainer": {"type": "string", "description": "GitHub handle of the maintainer (no @)."},
+        "reviewer": {"type": "string", "description": "GitHub handle of the external two-person-review gate reviewer (no @)."},
+        "security_contact": {"type": "string", "description": "Security contact email."}
+      }
+    },
+    "legal": {
+      "type": "object",
+      "required": ["copyright_holder", "license"],
+      "additionalProperties": false,
+      "properties": {
+        "copyright_holder": {"type": "string"},
+        "license": {"type": "string", "description": "SPDX license id, e.g. MIT."}
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bestpractices_id": {"type": "integer", "description": "bestpractices.dev project id; 0 until registered."}
+      }
+    }
+  }
+}

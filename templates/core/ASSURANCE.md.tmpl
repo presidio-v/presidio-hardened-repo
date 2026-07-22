@@ -1,0 +1,75 @@
+# Security Assurance Case
+
+This document is the assurance case for `{{PROJECT_NAME}}`: an explicit argument
+for why the project's security requirements are met. It has four parts, as
+required by the OpenSSF Best Practices silver criterion `assurance_case`:
+
+1. the threat model,
+2. the trust boundaries,
+3. the argument that secure design principles are applied, and
+4. the argument that common implementation weaknesses are countered.
+
+It is a summary that links to the authoritative detail in
+[`SECURITY.md`](SECURITY.md) (controls, per-version threat tables, reporting) and
+[`ARCHITECTURE.md`](ARCHITECTURE.md) (components, flow, boundaries) for
+`{{REPO_SLUG}}`.
+
+## 1. Threat model
+
+<!-- Name the asset(s) this project protects and why they matter. Then list the
+adversaries/threats it is designed against, each mapped to the control that
+counters it. State what is explicitly OUT OF SCOPE (documented, not silently
+assumed). The reference case listed: the asset (an irreversible action about to
+be committed); adversaries — a compromised/buggy caller leaking sensitive data, a
+caller driven to over-act, duplicated/re-submitted requests, a spoofed runtime
+signal, audit-trail tampering/repudiation, metadata leakage to a counterparty; each with
+its mitigating control; and out-of-scope items — key custody delegated to the
+caller, the downstream rail itself, detector recall limits. -->
+<!-- FILL:threat-model -->
+
+## 2. Trust boundaries
+
+<!-- The boundaries where untrusted data enters or sensitive data leaves; keep the
+names aligned with ARCHITECTURE.md#trust-boundaries. For each: name it (X -> Y),
+say whether it is an input-validation or an egress boundary, and give the control.
+The reference case had: caller -> library (untrusted input, primary validation
+boundary); library -> irreversible downstream egress (controls complete before
+crossing); library -> network services/sinks (TLS with cert verification, local
+backstop on remote failure); key custody outside the project by contract. -->
+<!-- FILL:trust-boundaries -->
+
+## 3. Secure design principles applied
+
+<!-- Argue, principle by principle, how the design applies each. Keep the five
+headings. The reference case argued:
+- Fail-safe defaults / secure by default — pipeline fails closed; protective
+  behaviour on by default; new controls opt-in, defaults not weakened silently.
+- Complete mediation — every input passes all controls before egress; load-bearing
+  ordering is part of the contract.
+- Least privilege — the project holds no long-lived secrets/keys it does not need;
+  sensitive custody is delegated by contract.
+- Defense in depth — independent controls each cover a distinct threat.
+- Economy of mechanism — vetted standard crypto primitives only; no bespoke crypto. -->
+<!-- FILL:secure-design-argument -->
+
+## 4. Common implementation weaknesses countered
+
+<!-- A table (Weakness class | How it is countered) covering the classes relevant
+to this project, each mapped to a concrete control AND to the automated tooling
+that checks it. Cover at least: improper input validation / injection (CWE-20,
+CWE-74); memory safety (CWE-119 family) — note if the language is memory-safe;
+cryptographic misuse (CWE-327, CWE-916); hard-coded / exposed secrets (CWE-798,
+CWE-532); insecure network / SSRF (CWE-319, CWE-295); unsafe deserialization
+(CWE-502); vulnerable dependencies (CWE-1104). Then state that these classes are
+checked continuously by CodeQL, bandit (ruff `S` rules), and OpenSSF Scorecard on
+every push and pull request, plus any independent review performed. -->
+<!-- FILL:weakness-argument -->
+
+## Conclusion
+
+The threats above are each matched to a control; the controls sit at explicit
+trust boundaries; the design follows fail-safe, least-privilege, complete-
+mediation, defense-in-depth, and economy-of-mechanism principles; and the common
+implementation weakness classes are countered by design and checked by automated
+analysis. The project's stated security requirements are therefore met, subject
+to the documented out-of-scope assumptions.

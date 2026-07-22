@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 PRESIDIO Group
+[project]
+name = "presidio-hardened-repo"
+version = "0.1.0"
+description = "Claude Code skill that hardens a GitHub repo to a high OpenSSF Scorecard score and the OpenSSF Best Practices badge."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "PRESIDIO Group" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest", "pytest-cov"]
+fuzz = ["atheris"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Mirror the presidio family hardened rule set (see cii-badge-passing warnings_strict).
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "SIM", "TCH"]
+# S101: asserts are the test idiom. S603/S607: we shell out to git/gh by design.
+ignore = ["S101", "S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+branch = true
+source = ["scripts"]
+
+[tool.coverage.report]
+show_missing = true

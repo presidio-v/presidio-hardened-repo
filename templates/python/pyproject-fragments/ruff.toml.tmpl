@@ -1,0 +1,15 @@
+# Ruff config fragments — merge these blocks into the target pyproject.toml.
+
+[tool.ruff]
+target-version = "py310"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "SIM", "TCH"]
+# S101: assert is fine in tests (see per-file-ignores); S603/S607: subprocess
+# calls in this codebase use fixed, non-shell argv and are reviewed by hand.
+ignore = ["S101", "S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests rely on assert for expectations; do not flag S101 there.
+"tests/**" = ["S101"]

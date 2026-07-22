@@ -1,0 +1,41 @@
+# Stability & semver guarantees — {{PROJECT_NAME}}
+
+For downstream integrators depending on this project.
+
+## What is the public API
+
+<!-- FILL:public-api-surface: define exactly what counts as the public API of this project. Read the target repo and state it precisely — e.g. everything exported in `{{PROJECT_PACKAGE}}.__all__` plus the documented signatures of those names, plus any modules/entrypoints promised as stable. Name any underscore-prefixed or grandfathered names that are deliberately kept, and until which version. Everything not listed here is internal and may change without notice. -->
+
+## Versioning rules (semver, pre-1.0 profile)
+
+- **Patch (0.x.Y):** bug fixes, security fixes, dependency floor bumps. No API
+  change, no behaviour change except the fixed defect. Safe to auto-upgrade; this
+  is the channel security releases ship on.
+- **Minor (0.X.0):** additive API (new exports, new optional parameters with
+  defaults, new optional extras). Existing code keeps working, including the
+  documented public behaviour. Deprecations are announced here (docstring +
+  CHANGELOG) at least one minor before any change.
+- **Major (1.0.0+):** the only place deprecated surface may be removed.
+
+**Pin guidance for integrators:** pin `{{PROJECT_PACKAGE}}` to the current minor
+in production and run the verification step (below) in your CI on every upgrade.
+
+## Behavioural guarantees (stronger than API stability)
+
+These are security invariants, not just interfaces; weakening any of them is
+treated as a breaking change regardless of which version component moves.
+
+<!-- FILL:behavioural-guarantees: enumerate this project's security/behavioural invariants — the guarantees a downstream integrator relies on that are stronger than mere API signatures (e.g. fail-closed on malformed input, ordering guarantees on the core processing path, sanitisation of sensitive data before it reaches logs, integrity of audit records). Read the target repo to state each one concretely. -->
+
+## Verifying an installation
+
+<!-- FILL:install-verification: give the exact command (or short procedure) a downstream integrator runs to confirm the guarantees above hold end-to-end against their installed environment, and what a passing result looks like (e.g. exit code 0). If the project ships no such check, say so and describe the recommended smoke test. -->
+
+## Schema/wire stability
+
+<!-- FILL:schema-stability: describe stability of any on-disk, wire, or record schemas this project emits or consumes — which fields are additive-only within a minor line, which external specs/versions are tracked, and how forward/backward compatibility is handled. Omit this section only if the project emits no such schema. -->
+
+## Security response
+
+See [SECURITY.md](SECURITY.md). Security fixes ship as patch releases on the
+latest minor; any minimum-safe dependency floors are bumped in the same release.
