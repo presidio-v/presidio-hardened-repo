@@ -75,6 +75,13 @@ external two-person-review gate) and `[project].tier`.
   (`make-public`, `add-reviewer`, `branch-protection`) also require `--yes`.
 - `spdx_headers.py --check|--apply <paths>` — gold per-file SPDX + copyright
   headers; `--check` is the CI guard.
+- `answersheet_to_proposal.py --sheet plan/cii-<tier>-answers.md --repo-path <repo>`
+  — turn a *filled* answer sheet into a bestpractices.dev "automation proposal"
+  URL: one click pre-fills the badge form for the human to review/accept, instead
+  of hand-entering every criterion. Unforced by default (only fills blank fields);
+  `--overrides '*'` lets proposals overwrite existing answers. Splits into several
+  URLs when the query exceeds `--max-url-len` (default 6000). The tool only
+  *proposes* — the human accepts each highlighted proposal in the UI.
 
 ## How to run (the orchestration loop)
 
@@ -97,9 +104,12 @@ For a target repo, follow the tier playbook in `playbook/<tier>.md`. In outline:
    (+ `--yes` for HIGH). Low-risk config (labels, security features) can be applied
    together; gates cannot.
 6. **Answer sheet.** Render `templates/sheets/cii-<tier>-answers.md.tmpl` into the
-   target's `plan/`, fill the FILL markers honestly from the evidence, and hand it
-   to the human to transcribe at bestpractices.dev. Register the project URL
-   EXACTLY as `https://github.com/<org>/<repo>` (Scorecard does a literal match).
+   target's `plan/`, fill the FILL markers honestly from the evidence. Then run
+   `answersheet_to_proposal.py --sheet plan/cii-<tier>-answers.md --repo-path <repo>`
+   to get a click-to-propose URL (faster than hand-entry; the human still reviews
+   and accepts each highlighted proposal at bestpractices.dev). Register the
+   project URL EXACTLY as `https://github.com/<org>/<repo>` (Scorecard does a
+   literal match).
 7. **Verify.** Re-run `preflight.py`; run Scorecard locally (or wait for the
    weekly action) and poll `api.scorecard.dev`. Confirm the badge level via
    `https://www.bestpractices.dev/projects/<id>.json`.

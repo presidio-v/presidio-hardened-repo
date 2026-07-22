@@ -15,6 +15,13 @@ wrong silently costs a check or a badge.
   auto-renders the current level. No README edit is needed on a level-up.
 - Silver requires passing first; gold requires silver first.
 - Poll status machine-readably: `GET https://www.bestpractices.dev/projects/<id>.json`.
+- `answersheet_to_proposal.py` turns a filled answer sheet into an *automation
+  proposal* URL (`/projects/<id>/choose/edit?<crit>_status=…`) so the human clicks
+  once and reviews/accepts each highlighted proposal instead of hand-entering every
+  criterion. It only proposes and is **unforced** by default (fills blank fields
+  only; `--overrides '*'` overwrites). A full passing sheet (~67 criteria) exceeds
+  the ~6000-char URL cap, so it is split across **several** URLs — open each; no
+  criterion is ever dropped.
 
 ## Scorecard checks
 

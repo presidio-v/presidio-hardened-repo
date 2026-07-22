@@ -50,6 +50,15 @@ canonicalisation/parse/digest function. The harness MUST keep the literal line
 python scripts/render.py render --manifest <repo>/hardening.toml   --templates templates/sheets --out <repo>/plan
 ```
 Fill `plan/cii-passing-answers.md` FILL markers honestly from the evidence above.
+Then turn the filled sheet into a click-to-propose URL for the human (faster than
+hand-entering each criterion at bestpractices.dev; the human still reviews and
+accepts every highlighted proposal — unforced, existing answers are not touched
+unless `--overrides` is passed):
+```
+python scripts/answersheet_to_proposal.py --sheet <repo>/plan/cii-passing-answers.md --repo-path <repo>
+```
+(Needs `[badge].bestpractices_id` set in the manifest, or pass `--id N`. A long
+sheet is split into several URLs — open each.)
 
 ## 7. GATES (one at a time — stop for a human "go")
 

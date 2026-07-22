@@ -2,7 +2,7 @@
 status: working sheet (gold NOT yet achieved)
 date: <!-- FILL:date --> <!-- date you start filling this sheet, YYYY-MM-DD -->
 owner: vstantch
-target: OpenSSF Best Practices Badge — GOLD level (project 0, on top of silver)
+target: OpenSSF Best Practices Badge — GOLD level (project 13746, on top of silver)
 project_url: https://github.com/presidio-v/presidio-hardened-repo
 related:
   - plan/cii-silver-answers.md
@@ -11,7 +11,7 @@ related:
 
 # CII Best Practices — GOLD answer sheet (working)
 
-Fill-in + roadmap for the **gold** tab at <https://www.bestpractices.dev/en/projects/0>.
+Fill-in + roadmap for the **gold** tab at <https://www.bestpractices.dev/en/projects/13746>.
 Covers only the criteria gold *adds* on top of silver. **Gold is a bigger lift than silver
 was** — it is not "mostly documentation." Two genuine blockers typically remain (a second
 *unassociated* contributor, and reproducible builds), plus a mechanical per-file header

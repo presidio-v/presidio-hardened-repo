@@ -72,6 +72,12 @@ python scripts/render.py render --manifest <repo>/hardening.toml --templates tem
 ```
 Fill `plan/cii-silver-answers.md` honestly. Confirm the honest N/A defaults
 (crypto_pfs, accessibility/i18n for a library, password storage) actually apply.
+Then generate a click-to-propose URL so the human reviews/accepts the silver
+answers instead of hand-entering them (unforced by default — existing answers are
+untouched unless `--overrides` is passed):
+```
+python scripts/answersheet_to_proposal.py --sheet <repo>/plan/cii-silver-answers.md --repo-path <repo>
+```
 Submit the silver tab at `bestpractices.dev/projects/<id>`.
 
 ## 7. Verify

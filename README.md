@@ -2,11 +2,8 @@
 
 [![CI](https://github.com/presidio-v/presidio-hardened-repo/actions/workflows/ci.yml/badge.svg)](https://github.com/presidio-v/presidio-hardened-repo/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/presidio-v/presidio-hardened-repo/badge)](https://scorecard.dev/viewer/?uri=github.com/presidio-v/presidio-hardened-repo)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/0/badge)](https://www.bestpractices.dev/projects/0)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13746/badge)](https://www.bestpractices.dev/projects/13746)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-<!-- The Best Practices badge points at project 0 until this repo is registered
-     at bestpractices.dev; set badge.bestpractices_id in hardening.toml then. -->
 
 
 A Claude Code skill that takes a GitHub repository — public or private — and
