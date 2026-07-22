@@ -38,7 +38,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import render  # noqa: E402
 
-BASE = "https://www.bestpractices.dev/projects/{id}/choose/edit?"
+BASE = "https://www.bestpractices.dev/projects/{id}/{section}/edit?"
+
+
+def infer_section(sheet_path: Path) -> str:
+    """Derive the badge-level section (passing|silver|gold) from the sheet filename.
+
+    bestpractices.dev silently ignores a field that does not belong to the section
+    named in the URL, so the section MUST match the sheet's tier — `choose` does not
+    carry level criteria and leaves the form empty (the original bug).
+    """
+    name = sheet_path.name.lower()
+    for tier in ("passing", "silver", "gold"):
+        if tier in name:
+            return tier
+    return "choose"
+
 
 # A normalized criterion is a lowercase identifier: letters, digits, underscore.
 _CRITERION_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -156,6 +171,7 @@ def build_urls(
     rows: list[tuple[str, str, str]],
     max_url_len: int = 6000,
     overrides: str | None = None,
+    section: str = "choose",
 ) -> list[str]:
     """Build one or more standalone proposal URLs, chunked to ``max_url_len``.
 
@@ -168,7 +184,7 @@ def build_urls(
     if not rows:
         raise ProposalError("no criteria parsed from the sheet — nothing to propose")
 
-    base = BASE.format(id=project_id)
+    base = BASE.format(id=project_id, section=section)
     prefix = f"overrides={quote_plus(overrides)}" if overrides else ""
     fragments = [_criterion_params(c, s, j) for c, s, j in rows]
 
@@ -234,6 +250,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--id", type=int, default=None, help="project id override")
     parser.add_argument("--max-url-len", type=int, default=6000, help="split URLs above this")
     parser.add_argument(
+        "--section",
+        default=None,
+        help="badge level the URL targets (passing|silver|gold); "
+        "default: inferred from the sheet filename. Fields not in this section are ignored.",
+    )
+    parser.add_argument(
         "--overrides",
         default=None,
         help="comma-separated globs of fields the proposals may overwrite (e.g. '*'); "
@@ -252,9 +274,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
+    section = args.section or infer_section(sheet_path)
     rows = parse_sheet(sheet_path.read_text(encoding="utf-8"))
     try:
-        urls = build_urls(project_id, rows, args.max_url_len, args.overrides)
+        urls = build_urls(project_id, rows, args.max_url_len, args.overrides, section)
     except ProposalError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
