@@ -76,7 +76,7 @@ These rendered files back the silver answers; confirm each is on `main`:
 | `contribution_requirements` | **Met** | `REPO/blob/main/CONTRIBUTING.md#requirements-for-acceptable-contributions` — style, tests, security-change rules, dependency bar. |
 | `report_tracker` | **Met** | GitHub Issues: `REPO/issues`. |
 | `maintenance_or_update` | **Met** | `REPO/blob/main/SECURITY.md#supported-versions` states which versions are supported and for how long; `REPO/blob/main/SEMVER.md` documents the upgrade path and what counts as a breaking change. |
-| `vulnerability_report_credit` | **Met** | `REPO/blob/main/SECURITY.md#reporting-a-vulnerability` — reporters are credited by name in the published advisory and the CHANGELOG entry unless they request anonymity. |
+| `vulnerability_report_credit` | **N/A** | No vulnerabilities have been resolved in the last 12 months (zero advisories filed on this new repo), so the criterion is N/A. The crediting policy nonetheless exists at `REPO/blob/main/SECURITY.md#reporting-a-vulnerability` — reporters are credited by name in the advisory and CHANGELOG unless they request anonymity. |
 | `vulnerability_response_process` | **Met** | `REPO/blob/main/SECURITY.md#reporting-a-vulnerability` — private GitHub Security Advisory intake, acknowledgement and patch targets stated. |
 
 ## Quality & testing
@@ -122,8 +122,8 @@ These rendered files back the silver answers; confirm each is on `main`:
 | `crypto_tls12` | **N/A** | No direct network client in the tool; the delegated `gh`/`git` transports enforce TLS ≥1.2. |
 | `crypto_certificate_verification` | **N/A** | No direct TLS client; certificate verification is handled (and not disabled) by the delegated `gh`/`git` tools. |
 | `crypto_verification_private` | **N/A** | The tool transmits no private data over its own connections; it opens none. |
-| `signed_releases` | **Unmet (pending first release)** | The signing infrastructure is in place — the org release-signing public key is published in `REPO/blob/main/allowed_signers` and the SSH-signed-tag + provenance flow is documented at `REPO/blob/main/SECURITY.md#verifying-releases-and-obtaining-public-signing-keys`. No release tag has been cut yet, so nothing is signed. Becomes **Met** once the first `vX.Y.Z` tag is SSH-signed and GitHub-verified. |
-| `version_tags_signed` | **Unmet (pending first release)** | No git tags exist yet on this newly public repo. The org signing key and `allowed_signers` are ready; becomes **Met** with the first SSH-signed, GitHub-verified release tag. |
+| `signed_releases` | **Met** | Release tags are SSH-signed with the `presidio-v` org ed25519 key and GitHub-verified — the `v0.1.0` release tag returns `verification.verified = true` (reason `valid`). The public key is published in `REPO/blob/main/allowed_signers` (verify locally: `git -c gpg.ssh.allowedSignersFile=allowed_signers verify-tag v0.1.0`); the process is documented at `REPO/blob/main/SECURITY.md#verifying-releases-and-obtaining-public-signing-keys`. The signing key is held in the org password manager — not on GitHub, the distribution site. |
+| `version_tags_signed` | **Met** | The `v0.1.0` release tag is SSH-signed with the org key and shows **Verified** on GitHub. |
 | `sites_password_security` | **N/A** | The project stores no user passwords and runs no authenticating service. |
 
 ## Analysis & monitoring
