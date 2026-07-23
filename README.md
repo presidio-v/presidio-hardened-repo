@@ -75,6 +75,11 @@ Honest, near-term work only:
   `presidio-hardened-treasury`); plugin/marketplace packaging so the skill installs
   without a manual symlink.
 
+## SDLC
+
+This repository is developed under the Presidio hardened-family SDLC:
+<https://github.com/presidio-v/presidio-hardened-docs/blob/main/sdlc/sdlc-report.md>.
+
 ## Governance, Architecture, Security
 
 - [Governance](GOVERNANCE.md) — roles, decision process, project continuity.
