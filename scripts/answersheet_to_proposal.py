@@ -56,6 +56,16 @@ def infer_section(sheet_path: Path) -> str:
     return "choose"
 
 
+# The sheets abbreviate the repo URL as a bare ``REPO`` shorthand in
+# justifications (``REPO/blob/main/LICENSE``, ``REPO#readme``, ``REPO/issues``),
+# defined once at the top as ``REPO = https://github.com/<slug>``. ``render.py``
+# only expands ``{{TOKEN}}`` placeholders, so this shorthand survives into the
+# rendered sheet — and a proposal that carried a literal ``REPO/...`` string
+# would be an unusable justification. Expand it here against the manifest slug.
+# ``\bREPO\b`` matches the standalone token and the ``REPO/``, ``REPO#`` forms
+# (``/`` and ``#`` are word boundaries) without touching ``REPORT`` or ``REPO_``.
+_REPO_SHORTHAND_RE = re.compile(r"\bREPO\b")
+
 # A normalized criterion is a lowercase identifier: letters, digits, underscore.
 _CRITERION_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 # First backtick-delimited token in a Criterion cell, e.g. `bus_factor` (SHOULD).
@@ -157,6 +167,42 @@ def parse_sheet(text: str) -> list[tuple[str, str, str]]:
         justification = cells[2].strip() if len(cells) > 2 else ""
         rows.append((criterion, status, justification))
     return rows
+
+
+def expand_repo_shorthand(text: str, repo_url: str) -> str:
+    """Replace the bare ``REPO`` shorthand with the target repo URL.
+
+    ``repo_url`` is ``https://github.com/<slug>`` (no trailing slash). Leaves the
+    text untouched when ``repo_url`` is empty so expansion is always best-effort.
+    """
+    if not repo_url:
+        return text
+    return _REPO_SHORTHAND_RE.sub(repo_url.rstrip("/"), text)
+
+
+def expand_rows(rows: list[tuple[str, str, str]], repo_url: str) -> list[tuple[str, str, str]]:
+    """Expand the ``REPO`` shorthand in every justification cell."""
+    return [(c, s, expand_repo_shorthand(j, repo_url)) for c, s, j in rows]
+
+
+def repo_url_from_manifest(args: argparse.Namespace) -> str:
+    """Return ``https://github.com/<slug>`` from the manifest, or ``""`` if absent.
+
+    Best-effort and never raises: the manifest may be missing (e.g. JSON mode run
+    outside a checkout). REPO_SLUG is the same token the sheets render from, so an
+    expanded justification matches the URL the human registered.
+    """
+    manifest_path = Path(args.manifest)
+    if not manifest_path.is_absolute():
+        manifest_path = Path(args.repo_path) / manifest_path
+    if not manifest_path.is_file():
+        return ""
+    try:
+        tokens = render.load_manifest(manifest_path)
+    except Exception:  # noqa: BLE001 — manifest problems must not break proposals
+        return ""
+    slug = tokens.get("REPO_SLUG", "").strip().strip("/")
+    return f"https://github.com/{slug}" if slug else ""
 
 
 def _criterion_params(criterion: str, status: str, justification: str) -> str:
@@ -303,6 +349,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     rows = parse_sheet(sheet_path.read_text(encoding="utf-8"))
+    # Expand the ``REPO`` shorthand to the real repo URL so proposals carry
+    # clickable justifications, not the sheet's ``REPO/...`` abbreviation.
+    rows = expand_rows(rows, repo_url_from_manifest(args))
 
     # JSON mode: no project id or section needed — the file lives in the target
     # repo and the BadgeApp links it to the registered project itself.

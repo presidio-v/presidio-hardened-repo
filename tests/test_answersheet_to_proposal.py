@@ -418,3 +418,49 @@ def test_main_bestpractices_json_empty_sheet_errors(
     assert rc == 2
     assert "no criteria parsed" in capsys.readouterr().err
     assert not out_file.exists()
+
+
+# --- REPO shorthand expansion ----------------------------------------------
+
+
+def test_expand_repo_shorthand_forms() -> None:
+    url = "https://github.com/acme-v/acme"
+    assert a2p.expand_repo_shorthand("`REPO/blob/main/LICENSE`", url) == (
+        "`https://github.com/acme-v/acme/blob/main/LICENSE`"
+    )
+    assert a2p.expand_repo_shorthand("REPO#readme", url) == f"{url}#readme"
+    assert a2p.expand_repo_shorthand("see REPO", url) == f"see {url}"
+
+
+def test_expand_repo_shorthand_word_boundary() -> None:
+    url = "https://github.com/acme-v/acme"
+    # REPORT and REPO_SLUG must be left untouched (not standalone REPO).
+    assert a2p.expand_repo_shorthand("REPORT and REPO_SLUG", url) == "REPORT and REPO_SLUG"
+
+
+def test_expand_repo_shorthand_empty_url_is_noop() -> None:
+    assert a2p.expand_repo_shorthand("REPO/x", "") == "REPO/x"
+
+
+def test_expand_repo_shorthand_strips_trailing_slash() -> None:
+    assert a2p.expand_repo_shorthand("REPO", "https://github.com/o/r/") == "https://github.com/o/r"
+
+
+def test_expand_rows_applies_to_justification_only() -> None:
+    rows = [("license_location", "Met", "URL: `REPO/blob/main/LICENSE`")]
+    out = a2p.expand_rows(rows, "https://github.com/o/r")
+    assert out[0][0] == "license_location"  # criterion untouched
+    assert out[0][2] == "URL: `https://github.com/o/r/blob/main/LICENSE`"
+
+
+def test_repo_url_from_manifest(tmp_path: Path) -> None:
+    (tmp_path / "hardening.toml").write_text(
+        '[project]\nname = "acme"\norg = "acme-v"\n', encoding="utf-8"
+    )
+    args = argparse.Namespace(repo_path=str(tmp_path), manifest="hardening.toml")
+    assert a2p.repo_url_from_manifest(args) == "https://github.com/acme-v/acme"
+
+
+def test_repo_url_from_manifest_missing_is_empty(tmp_path: Path) -> None:
+    args = argparse.Namespace(repo_path=str(tmp_path), manifest="nope.toml")
+    assert a2p.repo_url_from_manifest(args) == ""

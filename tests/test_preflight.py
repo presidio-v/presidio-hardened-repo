@@ -464,8 +464,11 @@ def test_check_remote_with_gh_runs_each_check(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(preflight, "_gh_json", lambda a: None)
     monkeypatch.setattr(preflight, "_gh", lambda a: (127, ""))
     results = preflight.check_remote("o/r", "bob")
-    # Six remote criteria attempted even when each individually degrades.
-    assert len(results) == 6
+    # Seven remote criteria attempted even when each individually degrades
+    # (repo_public, branch_protection, scorecard_token_secret, good_first_issue,
+    # two_person_review_collaborator, version_tags_signed_verified, require_2FA).
+    assert len(results) == 7
+    assert any(r.criterion == "scorecard_token_secret" for r in results)
 
 
 # --- orchestration + main --------------------------------------------------
@@ -552,3 +555,82 @@ def test_main_missing_manifest(tmp_path: Path, capsys: pytest.CaptureFixture[str
     rc = preflight.main(["--repo-path", str(repo), "--tier", "silver"])
     assert rc == 2
     assert "manifest not found" in capsys.readouterr().err
+
+
+# --- workflow hardening (existing-workflow Token-Permissions + Pinned-Deps) --
+
+_SHA = "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0"  # 40-hex, a real checkout SHA
+
+
+def test_workflow_hardening_all_met(tmp_path: Path) -> None:
+    _write_workflow(
+        tmp_path,
+        "ci.yml",
+        "name: CI\npermissions:\n  contents: read\n"
+        f"jobs:\n  t:\n    steps:\n      - uses: actions/checkout@{_SHA} # v7\n",
+    )
+    results = preflight.check_workflow_hardening(tmp_path)
+    by = {r.criterion: r for r in results}
+    assert by["workflow_token_permissions"].status == preflight.MET
+    assert by["workflow_pinned_actions"].status == preflight.MET
+
+
+def test_workflow_missing_top_level_permissions_is_unmet(tmp_path: Path) -> None:
+    # Job-scoped permissions only (indented) must NOT count as top-level.
+    _write_workflow(
+        tmp_path,
+        "codeql.yml",
+        "name: CodeQL\njobs:\n  a:\n    permissions:\n      security-events: write\n"
+        f"    steps:\n      - uses: actions/checkout@{_SHA} # v7\n",
+    )
+    by = {r.criterion: r for r in preflight.check_workflow_hardening(tmp_path)}
+    assert by["workflow_token_permissions"].status == preflight.UNMET
+    assert "codeql.yml" in by["workflow_token_permissions"].reason
+
+
+def test_workflow_tag_pinned_uses_is_unmet(tmp_path: Path) -> None:
+    _write_workflow(
+        tmp_path,
+        "ci.yml",
+        "name: CI\npermissions:\n  contents: read\n"
+        "jobs:\n  t:\n    steps:\n      - uses: actions/checkout@v4\n",
+    )
+    by = {r.criterion: r for r in preflight.check_workflow_hardening(tmp_path)}
+    assert by["workflow_pinned_actions"].status == preflight.UNMET
+    assert "actions/checkout@v4" in by["workflow_pinned_actions"].reason
+
+
+def test_workflow_local_and_docker_uses_are_exempt(tmp_path: Path) -> None:
+    _write_workflow(
+        tmp_path,
+        "ci.yml",
+        "name: CI\npermissions:\n  contents: read\n"
+        "jobs:\n  t:\n    steps:\n"
+        "      - uses: ./.github/actions/local\n"
+        "      - uses: docker://alpine:3.20\n",
+    )
+    by = {r.criterion: r for r in preflight.check_workflow_hardening(tmp_path)}
+    assert by["workflow_pinned_actions"].status == preflight.MET
+
+
+def test_workflow_hardening_no_workflows_is_human(tmp_path: Path) -> None:
+    (result,) = preflight.check_workflow_hardening(tmp_path)
+    assert result.status == preflight.HUMAN
+
+
+def test_unpinned_uses_helper() -> None:
+    text = (
+        f"      - uses: actions/checkout@{_SHA}\n"
+        "      - uses: actions/setup-python@v6\n"
+        "      - uses: ./local\n"
+    )
+    assert preflight._unpinned_uses(text) == ["actions/setup-python@v6"]
+
+
+def test_scorecard_token_secret_states(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(preflight, "_gh", lambda args: (0, ""))
+    assert preflight.check_scorecard_token("o/r")[0].status == preflight.MET
+    monkeypatch.setattr(preflight, "_gh", lambda args: (1, ""))
+    assert preflight.check_scorecard_token("o/r")[0].status == preflight.UNMET
+    monkeypatch.setattr(preflight, "_gh", lambda args: (127, ""))
+    assert preflight.check_scorecard_token("o/r")[0].status == preflight.HUMAN

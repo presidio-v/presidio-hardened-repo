@@ -55,6 +55,7 @@ HUMAN = "NEEDS-HUMAN-EVIDENCE"
 GRP_FILES = "Files"
 GRP_SOURCE = "Source"
 GRP_COVERAGE = "Coverage"
+GRP_WORKFLOWS = "Workflow hardening (Scorecard)"
 GRP_REGISTRATION = "Registration"
 GRP_REMOTE = "Remote (gh)"
 GRP_HUMAN = "Human evidence"
@@ -184,6 +185,97 @@ def check_continuous_integration(repo: Path) -> list[Result]:
             return [Result(GRP_FILES, crit, MET, f"{wf.name} runs the test suite")]
     scanned = ", ".join(w.name for w in workflows)
     return [Result(GRP_FILES, crit, UNMET, f"no test-running workflow (scanned: {scanned})")]
+
+
+# A pinned GitHub Action ref is a full 40-char commit SHA after the ``@``.
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+# ``uses:`` value on a step or reusable-workflow line.
+_USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*['\"]?([^'\"\s]+)", re.MULTILINE)
+# A top-level ``permissions:`` key (column 0, not the job-scoped indented one).
+_TOP_PERMISSIONS_RE = re.compile(r"^permissions:", re.MULTILINE)
+
+
+def _iter_workflows(repo: Path) -> list[Path]:
+    wf_dir = repo / ".github" / "workflows"
+    if not wf_dir.is_dir():
+        return []
+    return sorted(p for p in wf_dir.iterdir() if p.is_file() and p.suffix in (".yml", ".yaml"))
+
+
+def _unpinned_uses(text: str) -> list[str]:
+    """Return external ``uses:`` refs that are not pinned to a 40-char SHA.
+
+    Local (``./…``) and container (``docker://``) refs are exempt: they are not
+    GitHub-Action tag refs and Scorecard does not ask them to be SHA-pinned.
+    """
+    unpinned: list[str] = []
+    for match in _USES_RE.finditer(text):
+        ref = match.group(1)
+        if ref.startswith("./") or ref.startswith("docker://"):
+            continue
+        _, sep, version = ref.partition("@")
+        if not sep or not _SHA_RE.fullmatch(version):
+            unpinned.append(ref)
+    return unpinned
+
+
+def check_workflow_hardening(repo: Path) -> list[Result]:
+    """Flag existing workflows the skill's initial pass does not itself harden.
+
+    The skill emits an already-hardened ``scorecard.yml``, but a target's
+    *pre-existing* CI/CodeQL/publish workflows are its own — so Scorecard's
+    Token-Permissions and Pinned-Dependencies checks stay low until each one
+    gains a top-level ``permissions:`` block and SHA-pinned ``uses:``. Preflight
+    reports these gaps so they are fixed in the same pass, not in a later manual
+    PR.
+    """
+    workflows = _iter_workflows(repo)
+    if not workflows:
+        return [
+            Result(GRP_WORKFLOWS, "workflow_token_permissions", HUMAN, "no workflows to assess"),
+        ]
+
+    no_perms: list[str] = []
+    unpinned: list[tuple[str, str]] = []  # (workflow, ref)
+    for wf in workflows:
+        try:
+            text = wf.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if not _TOP_PERMISSIONS_RE.search(text):
+            no_perms.append(wf.name)
+        for ref in _unpinned_uses(text):
+            unpinned.append((wf.name, ref))
+
+    results: list[Result] = []
+    crit_perms = "workflow_token_permissions"
+    if no_perms:
+        results.append(
+            Result(
+                GRP_WORKFLOWS, crit_perms, UNMET, f"no top-level permissions: {', '.join(no_perms)}"
+            )
+        )
+    else:
+        results.append(
+            Result(
+                GRP_WORKFLOWS,
+                crit_perms,
+                MET,
+                f"all {len(workflows)} workflows set top-level permissions",
+            )
+        )
+
+    crit_pin = "workflow_pinned_actions"
+    if unpinned:
+        sample = ", ".join(f"{wf}:{ref}" for wf, ref in unpinned[:3])
+        results.append(
+            Result(
+                GRP_WORKFLOWS, crit_pin, UNMET, f"{len(unpinned)} unpinned uses: (e.g. {sample})"
+            )
+        )
+    else:
+        results.append(Result(GRP_WORKFLOWS, crit_pin, MET, "all external uses: are SHA-pinned"))
+    return results
 
 
 def _has_spdx(path: Path) -> bool:
@@ -385,6 +477,24 @@ def check_tag_verification(slug: str) -> list[Result]:
     return [Result(GRP_REMOTE, crit, UNMET, f"tag {name} signature not verified")]
 
 
+def check_scorecard_token(slug: str) -> list[Result]:
+    """The ``SCORECARD_TOKEN`` Actions secret must exist for Branch-Protection.
+
+    Scorecard's Branch-Protection check reads protection rules, which the default
+    ``GITHUB_TOKEN`` cannot see; the ``scorecard.yml`` the skill installs expects
+    a fine-grained PAT stored as ``SCORECARD_TOKEN``. Reading a secret's existence
+    (not its value) needs admin scope, so an unauthorised token degrades to HUMAN.
+    """
+    crit = "scorecard_token_secret"
+    rc, _ = _gh(["api", f"repos/{slug}/actions/secrets/SCORECARD_TOKEN"])
+    if rc == 127:
+        return [Result(GRP_REMOTE, crit, HUMAN, "gh unavailable")]
+    if rc == 0:
+        return [Result(GRP_REMOTE, crit, MET, "SCORECARD_TOKEN secret is set")]
+    note = "SCORECARD_TOKEN not set (or token lacks admin scope): gh secret set SCORECARD_TOKEN"
+    return [Result(GRP_REMOTE, crit, UNMET, note)]
+
+
 def check_org_2fa(slug: str) -> list[Result]:
     crit = "require_2FA"
     org = slug.split("/", 1)[0]
@@ -406,6 +516,7 @@ def check_remote(slug: str, reviewer: str) -> list[Result]:
         criteria = [
             "repo_public",
             "branch_protection",
+            "scorecard_token_secret",
             "good_first_issue_label",
             "two_person_review_collaborator",
             "version_tags_signed_verified",
@@ -416,6 +527,7 @@ def check_remote(slug: str, reviewer: str) -> list[Result]:
     results: list[Result] = []
     results += check_repo_public(slug)
     results += check_branch_protection(slug)
+    results += check_scorecard_token(slug)
     results += check_good_first_issue(slug)
     results += check_reviewer_collaborator(slug, reviewer)
     results += check_tag_verification(slug)
@@ -439,6 +551,7 @@ def run_checks(repo: Path, tier: str, tokens: dict[str, str], slug: str) -> list
     results: list[Result] = []
     results += check_files(repo, tier)
     results += check_continuous_integration(repo)
+    results += check_workflow_hardening(repo)
     results += check_spdx_headers(repo)
     results += check_fuzzing(repo)
     results += check_coverage(repo, tier)

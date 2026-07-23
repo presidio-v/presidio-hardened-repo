@@ -88,29 +88,50 @@ external two-person-review gate) and `[project].tier`.
 For a target repo, follow the tier playbook in `playbook/<tier>.md`. In outline:
 
 1. **Preflight.** `preflight.py --repo-path <repo> --tier <tier>` → the gap list.
-   Read the target codebase enough to do the judgment work honestly.
+   Read the target codebase enough to do the judgment work honestly. The
+   **Workflow hardening** group flags pre-existing workflows lacking a top-level
+   `permissions:` or SHA-pinned `uses:`; the **Remote** group flags a missing
+   `SCORECARD_TOKEN` secret — both are Scorecard drags the skill does not fix by
+   emitting `scorecard.yml` alone.
 2. **Manifest.** Create/confirm the target's `hardening.toml`.
 3. **Emit.** `render.py render` the core (and python) templates on a *branch*,
    never to main directly. Then run `render.py check` — while FILL markers remain,
    **you** write the missing prose (threat model, architecture components,
    security-sensitive modules, per-criterion justifications) by reading the target
    code. Re-run `check` until clean.
-4. **Idempotency.** If a target file already exists and diverges from what the
+4. **Harden existing workflows.** The skill emits an already-hardened
+   `scorecard.yml`, but the target's *own* CI/CodeQL/publish workflows are not
+   rewritten. For each one preflight flags, add a top-level `permissions:` block
+   (least privilege; jobs re-declare what they need, e.g. CodeQL keeps
+   `security-events: write`) and SHA-pin every external `uses:`. Resolve a tag to
+   its commit SHA with `gh api repos/<owner>/<action>/commits/<tag> --jq .sha` and
+   pin as `owner/action@<sha> # <tag>`. Re-run preflight until the Workflow
+   hardening group is all MET. (This is the recipe that was a manual follow-up PR
+   before it became a checked step.)
+5. **Idempotency.** If a target file already exists and diverges from what the
    skill last emitted, do NOT clobber it — surface the divergence in the PR diff
    and merge by hand. (`hardening.lock.json` records emission digests; if absent,
    treat any pre-existing file as human-owned and diff against it.)
-5. **Config gates.** Walk the GATE blocks in the playbook one at a time. For each,
+6. **Config gates.** Walk the GATE blocks in the playbook one at a time. For each,
    present the `gh_settings.py` dry-run, get an explicit human go, then `--apply`
    (+ `--yes` for HIGH). Low-risk config (labels, security features) can be applied
-   together; gates cannot.
-6. **Answer sheet.** Render `templates/sheets/cii-<tier>-answers.md.tmpl` into the
-   target's `plan/`, fill the FILL markers honestly from the evidence. Then run
-   `answersheet_to_proposal.py --sheet plan/cii-<tier>-answers.md --repo-path <repo>`
-   to get a click-to-propose URL (faster than hand-entry; the human still reviews
-   and accepts each highlighted proposal at bestpractices.dev). Register the
-   project URL EXACTLY as `https://github.com/<org>/<repo>` (Scorecard does a
-   literal match).
-7. **Verify.** Re-run `preflight.py`; run Scorecard locally (or wait for the
+   together; gates cannot. Set the **`SCORECARD_TOKEN`** secret here — a
+   fine-grained PAT with `admin:read` (repo administration → read) so Scorecard's
+   Branch-Protection check can read protection rules:
+   `gh secret set SCORECARD_TOKEN --repo <org>/<repo>` (paste the PAT; never commit
+   it). The default `GITHUB_TOKEN` cannot read protection rules.
+7. **Answer sheet.** Render `templates/sheets/cii-<tier>-answers.md.tmpl` into the
+   target's `plan/`, fill the FILL markers honestly from the evidence. **Prefer**
+   `answersheet_to_proposal.py --sheet plan/cii-<tier>-answers.md --repo-path <repo>
+   --bestpractices-json <repo>/.bestpractices.json` — commit that file to the
+   target root and the BadgeApp seeds every proposed answer from it in one shot (no
+   URL-length cap, no multi-tab clobber). The URL mode (omit `--bestpractices-json`)
+   is the fallback for a repo where you cannot commit the file; it splits into
+   several URLs you open **one at a time**. Either way the human reviews and accepts
+   each proposal. The generator expands the sheet's `REPO` shorthand to the real
+   repo URL. Register the project URL EXACTLY as `https://github.com/<org>/<repo>`
+   (Scorecard does a literal match).
+8. **Verify.** Re-run `preflight.py`; run Scorecard locally (or wait for the
    weekly action) and poll `api.scorecard.dev`. Confirm the badge level via
    `https://www.bestpractices.dev/projects/<id>.json`.
 
@@ -122,7 +143,11 @@ For a target repo, follow the tier playbook in `playbook/<tier>.md`. In outline:
   **not** detect Hypothesis. Keep that literal line in the fuzz harness.
 - Atheris has no macOS wheel and no cp310 wheel — fuzz job runs on Linux under 3.12.
 - Scorecard's Branch-Protection check needs a fine-grained PAT (`admin:read`) as
-  `SCORECARD_TOKEN`; the default `GITHUB_TOKEN` cannot read protection rules.
+  `SCORECARD_TOKEN`; the default `GITHUB_TOKEN` cannot read protection rules. Set
+  it in step 6 — preflight's `scorecard_token_secret` check flags it when missing.
+- The skill emits only `scorecard.yml`; a target's pre-existing workflows keep
+  their own `permissions:`/`uses:` — harden them in step 4 or Token-Permissions
+  and Pinned-Dependencies stay low. Preflight's Workflow-hardening group lists them.
 - Code-Review scores 0 for a single-contributor project — this is why the
   external reviewer / two-person gate is the highest-leverage single change.
 
@@ -132,7 +157,7 @@ For a target repo, follow the tier playbook in `playbook/<tier>.md`. In outline:
 - `templates/python/` — ruff, pytest+coverage floors, CodeQL, publish, atheris.
 - `templates/sheets/` — per-tier answer-sheet skeletons.
 - `playbook/{passing,silver,gold}.md` — ordered steps with GATE blocks.
-- `scripts/` — render, preflight, gh_settings, spdx_headers.
+- `scripts/` — render, preflight, gh_settings, spdx_headers, answersheet_to_proposal.
 - `docs/examples/x402/` — the real x402 artifacts, as an attributed worked example
   (NOT templates — do not copy their domain content into a target).
 
