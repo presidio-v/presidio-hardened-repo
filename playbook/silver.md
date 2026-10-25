@@ -44,6 +44,8 @@ Resolve, honestly, from the target code:
 - `dependency_monitoring`: Dependabot + `pip-audit` in CI. ✓
 - `signed_releases` + `version_tags_signed`: SSH-signed tags with `allowed_signers`;
   document key-obtaining in `SECURITY.md`. Confirm the release flow actually signs.
+  Source-only projects: also attach a signed source archive to each GitHub release
+  (Scorecard Signed-Releases ignores tags; see `docs/faq-traps.md`).
 
 ## 5. GATES — the two-person review gate (the leverage item)
 

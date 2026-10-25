@@ -20,3 +20,7 @@ All notable changes to this project are documented here. The format follows
 - `templates/sheets/` — passing/silver/gold bestpractices.dev answer-sheet skeletons.
 - `playbook/{passing,silver,gold}.md` — ordered steps with human GATE blocks.
 - `docs/examples/x402/` — the original x402 artifacts as an attributed worked example.
+- Signed source archives for source-only targets: `allowed_signers.tmpl` allows the
+  release key for the `file` namespace as well as `git`, `SECURITY.md.tmpl`
+  documents archive verification, and `docs/faq-traps.md` / `playbook/silver.md`
+  note that Scorecard's Signed-Releases check scores release assets, not tags.
