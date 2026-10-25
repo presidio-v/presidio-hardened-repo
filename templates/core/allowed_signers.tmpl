@@ -1,11 +1,18 @@
-# SSH allowed_signers for verifying {{PROJECT_NAME}} release tags.
+# SSH allowed_signers for verifying {{PROJECT_NAME}} releases.
 #
-# Release tags are SSH-signed with the presidio-v org release signing key.
-# To verify a tag locally:
+# Release tags and release source archives are SSH-signed with the presidio-v
+# org release signing key. The key is allowed for the "git" namespace (tags)
+# and the "file" namespace (archives), so neither signature passes for the
+# other. To verify a tag locally:
 #
 #   git -c gpg.ssh.allowedSignersFile=allowed_signers verify-tag <tag>
+#
+# To verify a release archive:
+#
+#   ssh-keygen -Y verify -f allowed_signers -I vladimir@presidio-group.eu \
+#     -n file -s <archive>.sig < <archive>
 #
 # GitHub also shows each release tag as "Verified" because this same key is
 # registered as a signing key on the maintainer's GitHub account.
 
-vstantch@users.noreply.github.com,vladimir@presidio-group.eu namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzAijdWkrW+yAhY6ZfjBqSs/1HWiGLJkhfHv2PX9JB5 presidio-v release signing
+vstantch@users.noreply.github.com,vladimir@presidio-group.eu namespaces="git,file" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILzAijdWkrW+yAhY6ZfjBqSs/1HWiGLJkhfHv2PX9JB5 presidio-v release signing

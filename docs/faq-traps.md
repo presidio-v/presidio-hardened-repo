@@ -57,6 +57,15 @@ wrong silently costs a check or a badge.
   left unsigned. The public half is in `allowed_signers` for local verification.
 - Confirm GitHub-side verification per release:
   `gh api repos/<org>/<repo>/git/tags/<tagsha> --jq .verification.verified` → `true`.
+- Scorecard's **Signed-Releases** check looks only at GitHub *release assets*
+  (`.sig`, `.asc`, `.minisig`, `.sigstore`, `.intoto.jsonl`, …); a signed tag alone
+  scores "no releases found" (-1). A source-only project (no registry artefacts,
+  e.g. a Rust workspace not on crates.io) attaches a signed source archive to each
+  release — see the `release-signing` skill. A `.sig` reaches ~8; 10 needs a
+  provenance attestation (`.intoto.jsonl`).
+- Archive signatures use SSH namespace `file`, tags use `git`. `allowed_signers`
+  must list `namespaces="git,file"`, or `ssh-keygen -Y verify -n file` rejects
+  the archive (seen on treasury v0.22.0). Never sign archives with `-n git`.
 
 ## Coverage
 

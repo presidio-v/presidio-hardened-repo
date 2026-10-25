@@ -107,6 +107,17 @@ artefact verification; the trusted identities are described below.
   git -c gpg.ssh.allowedSignersFile=allowed_signers verify-tag <tag>
   ```
 
+- **Source archives** (projects without registry artefacts): each GitHub
+  release carries `{{PROJECT_NAME}}-<version>.tar.gz` (`git archive` of the
+  signed tag), its SSH signature (`.tar.gz.sig`, namespace `file`, same key) and
+  `SHA256SUMS`. To verify a downloaded archive:
+
+  ```bash
+  ssh-keygen -Y verify -f allowed_signers -I vladimir@presidio-group.eu \
+    -n file -s {{PROJECT_NAME}}-<version>.tar.gz.sig < {{PROJECT_NAME}}-<version>.tar.gz
+  shasum -a 256 -c SHA256SUMS
+  ```
+
 - **Package-registry releases** carry PEP 740 (or the registry's equivalent)
   attestations published via Trusted Publishing (OIDC, no stored API tokens);
   standard tooling and the registry UI surface these automatically.
