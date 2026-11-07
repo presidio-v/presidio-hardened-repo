@@ -83,6 +83,16 @@ For the consolidated assurance case — threat model, trust boundaries,
 secure-design argument, and how common implementation weaknesses are countered —
 see [`ASSURANCE.md`](ASSURANCE.md).
 
+## Software Development Lifecycle
+
+This repository is developed under the Presidio hardened-family SDLC, in the
+**open-source baseline** tier: it is published as source and PRESIDIO does not operate
+it as a service. The public report (scope, standards mapping, threat-model gates,
+supply-chain controls) is at
+<https://github.com/presidio-v/presidio-hardened-docs/blob/main/sdlc/sdlc-report.md>,
+and this repository's measured controls are its row in the
+[applicability matrix](https://github.com/presidio-v/presidio-hardened-docs/blob/main/sdlc/applicability.md).
+
 ## Verifying Releases and Obtaining Public Signing Keys
 
 This project is installed by symlinking the repository into `~/.claude/skills/`
