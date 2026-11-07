@@ -65,12 +65,15 @@ This repository hardens itself with its own templates.
 
 ## Roadmap (next 12 months)
 
-Honest, near-term work only:
+Honest, near-term work only. Full detail and rationale:
+[`PRESIDIO-REQ.md`](PRESIDIO-REQ.md).
 
-- **Now / in flight** — dogfood this skill to OpenSSF silver on itself, then apply
-  it to `presidio-hardened-ikigov-assess` and `presidio-hardened-arch-translucency`.
-- **Next** — extend `preflight.py` to cover the full gold criteria set; ship a
-  reproducible-build helper and a per-file SPDX rollout for gold targets.
+- **Done** — silver on this repository, then applied to eight more: x402, ikigov-assess,
+  arch-translucency, angellist, x402-mcp, treasury, evidence and hardened-ai, all
+  silver.
+- **Next** — merge several answer sheets into one `.bestpractices.json`; extend
+  `preflight.py` to cover the full gold criteria set; ship a reproducible-build helper
+  and a per-file SPDX rollout for gold targets.
 - **Later** (under evaluation) — a non-Python language layer (e.g. Rust, for
   `presidio-hardened-treasury`); plugin/marketplace packaging so the skill installs
   without a manual symlink.
