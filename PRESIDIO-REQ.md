@@ -62,15 +62,29 @@ Signed tag `v0.1.0`. Delivered:
   (MET / UNMET / NEEDS-HUMAN-EVIDENCE per criterion), `gh_settings.py` (hybrid
   dry-run / apply / `--yes`), `spdx_headers.py` (`--check` / `--apply`).
 - [x] `answersheet_to_proposal.py`: a filled answer sheet becomes BadgeApp automation
-  proposals, as URLs or as a committed `.bestpractices.json`.
+  proposal URLs.
+- [x] `gh_settings.py` leaves Scorecard out of the discovered required status checks.
 - [x] Core and Python templates (governance, CI, Scorecard, CodeQL, publish,
   Dependabot, Atheris fuzz) and passing/silver/gold answer-sheet skeletons.
 - [x] `playbook/{passing,silver,gold}.md` with human GATE blocks;
-  `docs/faq-traps.md` (Scorecard URL literal match, Atheris wheels, `SCORECARD_TOKEN`,
-  Signed-Releases scoring release assets rather than tags).
+  `docs/faq-traps.md` (Scorecard URL literal match, Atheris wheels, the
+  `SCORECARD_TOKEN` secret Branch-Protection needs).
 - [x] `docs/examples/x402/`: the original x402 artifacts as an attributed worked example.
 - [x] Dogfooding: this repository hardens itself with its own templates (badge 13746,
   silver).
+
+### On `main` since v0.1.0 (unreleased)
+
+Fixes and additions from applying the skill to other repositories; see `CHANGELOG.md`
+`[Unreleased]`.
+
+- [x] `answersheet_to_proposal.py --bestpractices-json`: one committed file instead
+  of several proposal URLs (#3); the sheet's `REPO` shorthand expands to the real URL (#4).
+- [x] `preflight.py`: any test workflow counts for CI; criteria scoped to the requested
+  tier (#3); a Workflow-hardening group (top-level `permissions:`, SHA-pinned `uses:`)
+  and a `SCORECARD_TOKEN` secret check (#4).
+- [x] Signed source archives for source-only targets; the Signed-Releases trap (#11).
+- [x] CI dependency audit and the SDLC tier statement (#13); this file (#14).
 
 ### Applied since (badge level, verified at bestpractices.dev on 2026-11-07)
 
@@ -107,11 +121,6 @@ Requirements drawn from the runs above. Each closes a step that is manual or fra
 
 - Plugin or marketplace packaging, so the skill installs without a manual symlink
   (`docs/design.md` §Deferred: acceptable for v1).
-
-## Open items
-
-- `CHANGELOG.md` still lists the v0.1.0 content under `[Unreleased]`; it should be a
-  dated `[0.1.0] — 2026-07-22` section at the next release.
 
 ## Version Release Checklist
 
